@@ -9,39 +9,41 @@
 <body>
     <nav>
         <div class="logo">
+<<<<<<< HEAD
             <img src="images/logo.jpeg" alt="StraySpotter logo">
+=======
+            <img src="resources/logo.jpeg" alt="StraySpotter logo">
+>>>>>>> development
             <span>StraySpotter</span>
         </div>
         <ul class="nav-links">
-            <li class="active"><a href="#">Home</a></li>
-            <li><a href="#">Upload</a></li>
-            <li><a href="#">Gallery</a></li>
-            <li><a href="#">Summary</a></li>
+            <li class="active"><a href="#home">Home</a></li>
+            <li><a href="#upload">Upload</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+            <li><a href="#founders">Founders</a></li>
+            <li><a href="#summary">Summary</a></li>
         </ul>
-
-
-
         <div class="upload-icon">
             <a href="#" onclick="document.getElementById('file-upload').click();">
+<<<<<<< HEAD
                 <img src="images/camera_icon.png" alt="Upload">
+=======
+                <img src="resources/camera_icon.png" alt="Upload">
+>>>>>>> development
             </a>
         </div>
         <!-- Add the hidden file input -->
         <input type="file" id="file-upload" style="display: none;">
-
-   
     </nav>
     
 
-
-
-
-    <header>
+    <header id="home">
         <div class="purpose-container">
             <div class="purpose-text">
                 <h1>Who We Are</h1>
                 <p>StraySpotter is dedicated to documenting and protecting stray cats in urban areas.</p>
                 
+<<<<<<< HEAD
                 <div class="upload-section">
                     <!-- <button class="upload-button">Upload</button>
                     <input type="file" id="file-upload" style="display: none;"> -->
@@ -56,17 +58,32 @@
                 
 
 
+=======
+            <div id="upload" class="upload-section">
+                <form action="/upload" id="uploadForm" method="POST" enctype="multipart/form-data">
+                    <input type="file" id="imageInput" name="image" required /> 
+                    <input type="submit" class="upload-button" value="Upload"/>
+                </form>
+>>>>>>> development
             </div>
+            </div>
+
+            
+
             <div class="purpose-image">
+<<<<<<< HEAD
                 <img src="images/cathead2.png" alt="Interactive Cat">
+=======
+                <img src="resources/cathead2.png" alt="Interactive Cat">
+>>>>>>> development
                 <div class="speech-bubble">Meow! Feed me!</div>
             <!-- <a href="https://www.flaticon.com/free-icons/camera" title="camera icons">Camera icons created by Freepik - Flaticon</a> -->
-
             </div>
         </div>
     </header>
     
 
+<<<<<<< HEAD
     <section class="gallery">
         <h2>Gallery</h2>
 
@@ -78,10 +95,54 @@
             <img src="images/gallery_cat4.jpg" alt="Cat 4">
         </div> -->
         <button class="see-more">See More</button>
+=======
+
+    <section class="gallery" id="gallery" >
+        <h2>Gallery</h2>
+        <div class="gallery-grid" id="imageContainer"></div>
+<!-- 
+        <div class="gallery-grid">
+            <img src="../resources/gallery_cat1.jpg" alt="Cat 1">
+            <img src="../resources/gallery_cat2.jpg" alt="Cat 2">
+            <img src="../resources/gallery_cat3.jpeg" alt="Cat 3">
+            <img src="../resources/gallery_cat4.jpg" alt="Cat 4">
+        </div> -->
+        <a href="gallery.html"><button class="see-more">See More</button></a>
+>>>>>>> development
     </section>
 
 
-    <section class="summary">
+    <section class="founders" id="founders">
+        <h2>Our Founders</h2>
+        <div class="founders-grid">
+            <div class="founder">
+                <img src="resources/cathead2.png" alt="Alex">
+                <h3>Alex</h3>
+                <p> Co-founder & CEO</p>
+                <p class="bio">heyyy</p>
+            </div>
+
+            
+            <div class="founder">
+                <img src="resources/cathead2.png" alt="John">
+                
+                <h3>John</h3>
+                <p>Co-founder & CTO</p>
+                <p class="bio">hi</p>
+            </div>
+            <div class="founder">
+                <img src="resources/cathead2.png" alt="Kelvin">
+                <h3>Kelvin</h3>
+                <p>Co-founder & COO</p>
+                <p class="bio">hello</p>
+            </div>
+        </div>
+    </section>
+
+
+
+
+    <section class="summary" id="summary">
         <h2>Summary</h2>
         <p>This website helps collect and share images of stray cats. Let’s work together to provide them a better life!</p>
     </section>
@@ -90,6 +151,22 @@
     </footer>
 
     <script src="script.js">
+<<<<<<< HEAD
+=======
+        // Add this new code for smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+    
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+>>>>>>> development
     </script>
+    
 </body>
+
+
 </html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StraySpotter Gallery</title>
+
+    <style>
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #add8e6;
+    padding: 10px 20px;
+}
+
+
+
+.logo{
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
+.logo img{
+    border-radius: 100%;
+    height: 60px;
+    margin-right: 10px;
+}
+
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 40px;
+    margin-right: 35%;
+}
+
+
+
+.nav-links li {
+    padding: 10px;
+}
+
+.nav-links li.active {
+    background-color: #ff6347;
+    color: white;
+    border-radius: 5px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: black;
+}
+
+.upload-icon {
+    display: block;
+    margin-top: 10px;
+    transition: transform 0.3s
+}
+
+.upload-icon img {
+    width: 50px;
+}
+
+.upload-icon:hover {
+    transform: rotate(20deg);
+}
+
+
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5dc;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #333;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
+        }
+        @media (min-width: 640px) {
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (min-width: 1024px) {
+            .gallery-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-content {
+            padding: 0;
+        }
+        .card-content img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+        }
+        .action-buttons {
+            display: flex;
+            align-items: center;
+        }
+        .action-buttons button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            margin-right: 0.5rem;
+            color: #333;
+        }
+        .action-buttons span {
+            margin-right: 1rem;
+        }
+        .load-more {
+            display: block;
+            margin: 2rem auto 0;
+            padding: 0.5rem 1rem;
+            background-color: #3b82f6;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .load-more:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+
+
+
+<body>
+
+    <nav>
+        <div class="logo">
+            <img src="../resources/logo.jpeg" alt="StraySpotter logo">
+            <span>StraySpotter</span>
+        </div>
+        <ul class="nav-links">
+            <li class="active"><a href="index.html">Home</a></li>
+            <li><a href="#upload">Upload</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+            <li><a href="#founders">Founders</a></li>
+            <li><a href="#summary">Summary</a></li>
+        </ul>
+        <div class="upload-icon">
+            <a href="#" onclick="document.getElementById('file-upload').click();">
+                <img src="../resources/camera_icon.png" alt="Upload">
+            </a>
+        </div>
+        <!-- Add the hidden file input -->
+        <input type="file" id="file-upload" style="display: none;">
+    </nav>
+    
+
+
+
+
+
+
+
+
+
+
+    <div class="container">
+        <h1>StraySpotter Gallery</h1>
+        <div class="gallery-grid" id="galleryGrid"> 
+        
+            <!-- Gallery items will be dynamically added here -->
+        </div>
+        <button class="load-more" id="loadMoreBtn">Load More</button>
+    </div>
+
+    <script>
+        const images = [
+            { id: 1, src: '/placeholder.svg?height=400&width=400', likes: 120, comments: 15 },
+            { id: 2, src: '/placeholder.svg?height=400&width=400', likes: 85, comments: 8 },
+            { id: 3, src: '/placeholder.svg?height=400&width=400', likes: 200, comments: 32 },
+            { id: 4, src: '/placeholder.svg?height=400&width=400', likes: 150, comments: 20 },
+            { id: 5, src: '/placeholder.svg?height=400&width=400', likes: 95, comments: 12 },
+            { id: 6, src: '/placeholder.svg?height=400&width=400', likes: 180, comments: 25 },
+        ];
+
+        const galleryGrid = document.getElementById('galleryGrid');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+        function createGalleryItem(image) {
+            return `
+                <div class="card">
+                    <div class="card-content">
+                        <img src="${image.src}" alt="Cat ${image.id}">
+                    </div>
+                    <div class="card-footer">
+                        <div class="action-buttons">
+                            <button aria-label="Like">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            </button>
+                            <span>${image.likes}</span>
+                            <button aria-label="Comment">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                            </button>
+                            <span>${image.comments}</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button aria-label="Share">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            </button>
+                            <button aria-label="Bookmark">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadImages() {
+            images.forEach(image => {
+                galleryGrid.innerHTML += createGalleryItem(image);
+            });
+        }
+
+        loadImages();
+
+        loadMoreBtn.addEventListener('click', () => {
+            // In a real application, this would load more images from a server
+            alert('Load more images functionality would be implemented here.');
+        });
+    </script>
+</body>
+</html>
