@@ -9,7 +9,7 @@
 <body>
     <nav>
         <div class="logo">
-            <img src="../resources/logo.jpeg" alt="StraySpotter logo">
+            <img src="images/logo.jpeg" alt="StraySpotter logo">
             <span>StraySpotter</span>
         </div>
         <ul class="nav-links">
@@ -23,7 +23,7 @@
 
         <div class="upload-icon">
             <a href="#" onclick="document.getElementById('file-upload').click();">
-                <img src="../resources/camera_icon.png" alt="Upload">
+                <img src="images/camera_icon.png" alt="Upload">
             </a>
         </div>
         <!-- Add the hidden file input -->
@@ -43,8 +43,13 @@
                 <p>StraySpotter is dedicated to documenting and protecting stray cats in urban areas.</p>
                 
                 <div class="upload-section">
-                    <button class="upload-button">Upload</button>
-                    <input type="file" id="file-upload" style="display: none;">
+                    <!-- <button class="upload-button">Upload</button>
+                    <input type="file" id="file-upload" style="display: none;"> -->
+
+                    <form action="/upload" id="uploadForm" method="POST" enctype="multipart/form-data">
+                        <input type="file" id="imageInput" name="image" required /> 
+                        <input type="submit" class="upload-button" value="Upload"/>
+                    </form>
                 </div>
                 
 
@@ -53,7 +58,7 @@
 
             </div>
             <div class="purpose-image">
-                <img src="../resources/cathead2.png" alt="Interactive Cat">
+                <img src="images/cathead2.png" alt="Interactive Cat">
                 <div class="speech-bubble">Meow! Feed me!</div>
             <!-- <a href="https://www.flaticon.com/free-icons/camera" title="camera icons">Camera icons created by Freepik - Flaticon</a> -->
 
@@ -62,15 +67,16 @@
     </header>
     
 
-
     <section class="gallery">
         <h2>Gallery</h2>
-        <div class="gallery-grid">
-            <img src="../resources/gallery_cat1.jpg" alt="Cat 1">
-            <img src="../resources/gallery_cat2.jpg" alt="Cat 2">
-            <img src="../resources/gallery_cat3.jpeg" alt="Cat 3">
-            <img src="../resources/gallery_cat4.jpg" alt="Cat 4">
-        </div>
+
+        <div class="gallery-grid" id="imageContainer"></div>
+        <!-- <div class="gallery-grid">
+            <img src="images/gallery_cat1.jpg" alt="Cat 1">
+            <img src="images/gallery_cat2.jpg" alt="Cat 2">
+            <img src="images/gallery_cat3.jpeg" alt="Cat 3">
+            <img src="images/gallery_cat4.jpg" alt="Cat 4">
+        </div> -->
         <button class="see-more">See More</button>
     </section>
 
@@ -83,10 +89,7 @@
         <p>Follow us on Socials | GitHub</p>
     </footer>
 
-    <script>
-        document.querySelector('.upload-button').addEventListener('click', function() {
-            document.getElementById('file-upload').click();
-        });
+    <script src="script.js">
     </script>
 </body>
 </html>
