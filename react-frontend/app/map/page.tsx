@@ -1,16 +1,10 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import dynamic from "next/dynamic"
 import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
 import { fetchGalleryImages, fetchImageUrl } from "@/services/api"
-
-// Dynamically import Leaflet with no SSR since it requires window
-const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false })
-const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false })
-const Marker = dynamic(() => import("react-leaflet").then((mod) => mod.Marker), { ssr: false })
-const Tooltip = dynamic(() => import("react-leaflet").then((mod) => mod.Tooltip), { ssr: false })
+import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 
 type CatMarker = {
   id: string
@@ -69,12 +63,15 @@ export default function MapPage() {
     }
   }, [])
 
+  /*
+
   // Import Leaflet CSS
   useEffect(() => {
     if (typeof window !== "undefined") {
       import("leaflet/dist/leaflet.css")
     }
   }, [])
+   */
 
   return (
     <div className="min-h-screen bg-[#f5f5dc]">
@@ -100,8 +97,8 @@ export default function MapPage() {
               ref={mapRef}
             >
               <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
               {isLoading ? (
@@ -110,10 +107,9 @@ export default function MapPage() {
                 </div>
               ) : (
                 markers.map((marker) => {
-                  // Create a custom icon
                   const L = require("leaflet")
                   const customIcon = new L.Icon({
-                    iconUrl: "/resources/icon.png", // Use your custom icon
+                    iconUrl: "/resources/icon.png",
                     iconSize: [45, 50],
                   })
 
