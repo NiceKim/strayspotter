@@ -1,0 +1,65 @@
+services:
+  # Node.js backend service
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_PASSWORD=your_mysql_password
+      - ACCESS_KEY_ID=${ACCESS_KEY_ID}
+      - SECRET_ACCESS_KEY_ID=${SECRET_ACCESS_KEY_ID}
+      - KEY_ONEMAP_API=${KEY_ONEMAP_API}
+      - HOST=0.0.0.0
+      - PORT=3000
+      - SECOND_HOST=app
+      - SECOND_PORT=3000
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Next.js frontend service
+  frontend:
+    build:
+      context: ./react-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./react-frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+    depends_on:
+      - app
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # MySQL database service
+  db:
+    image: mysql:8.4
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=your_mysql_password
+      - MYSQL_DATABASE=strayspotter_database
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/database.sql:/docker-entrypoint-initdb.d/database.sql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:
+    driver: bridge

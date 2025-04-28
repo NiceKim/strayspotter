@@ -226,10 +226,11 @@ async function reverseGeocoding(connection, latitude, longitude) {
  */
 function createDBConnection() {
   const connection = mysql.createConnection({
-    host: 'localhost',
+    host: process.env.DB_HOST || 'localhost',
     user: 'root',
     database: 'strayspotter_database',
     password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT || 3306
   });
   return connection;
 }
