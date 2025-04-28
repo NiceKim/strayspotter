@@ -57,6 +57,127 @@ function countPicturesLocation(districtNo, type) {
       });
   });
 }
+
+/**
+ * Updates an existing access token in the database.
+ * 
+ * @async
+ * @param {Object} connection - The database connection object used to execute the query.
+ * @param {Object} token_info - An object containing the token details to be updated.
+  * @param {string} token_info.token_name - The name of the token to update.
+  * @param {number} token_info.expire_date - The new expiration date of the token.
+  * @param {string} token_info.access_token - The new access token.
+ * @returns {Object} - The result of the query execution.
+ */
+async function updateAccessToken(connection, token_info) {
+  const query = `UPDATE tokenStore SET expire_date = ?, access_token = ? WHERE token_name = ?`;
+  const [results] = await connection.promise().query(query,
+    [token_info.expire_date, token_info.access_token, token_info.token_name]
+  );
+  return results;
+}
+
+/**
+ * Retrieves an access token from the database based on the token name.
+ * 
+ * @async
+ * @param {Object} connection - The database connection object used to execute the query.
+ * @param {string} token_name - The name of the token to be retrieved.
+ * @returns {Object|null} - The token data if found, or `null` if no token is found.
+ */
+async function getAccessToken(connection, token_name) {
+  const query = `SELECT * FROM tokenStore WHERE token_name = ? LIMIT 1`;
+  const [results] = await connection.promise().query(query,
+    [token_name]
+  );
+  if (results.length == 0) {
+    return null;
+  }
+  return results[0];
+}
+
+/**
+ * This function inserts a new token record into the `tokenStore` table with the provided token information.
+ * 
+ * @async
+ * @param {Object} connection - The database connection object used to execute the query.
+ * @param {Object} token_info - The token information to be saved in the database.
+  * @param {string} token_info.token_name - The name of the token.
+  * @param {number} token_info.expire_date - The expiration date of the token in Unix timestamp format.
+  * @param {string} token_info.access_token - The access token string.
+ * @returns {string} - The name of the token that was saved.
+ * @throws {Error} - Throws an error if the query execution fails.
+ */
+async function saveAccessToken (connection, token_info) {
+  const query =  `INSERT INTO tokenStore (token_name, expire_date, access_token) VALUES (?, ?, ?)`;
+  try {
+    const [results] = await connection.promise().query(query, 
+      [token_info.token_name, token_info.expire_date, token_info.access_token]
+    );
+    return results.token_name;  
+  } catch (err) {
+      throw err;
+  }
+}
+
+/**
+* Requests a new authentication token from the OneMap API
+*
+* @async
+* @returns {Promise<Object>} Token data object with the following properties:
+ *   - {string} access_token - JWT token for authentication
+ *   - {string} expiry_timestamp - UNIX timestamp indicating when the token expires
+* @throws {Error} If the API request fails or returns an error
+*/
+async function requestOneMapToken() {
+  try {
+      const response = await axios.post(
+      `${process.env.ONEMAP_BASE_URL}/api/auth/post/getToken`,
+      {
+          email: process.env.ONEMAP_API_EMAIL,
+          password: process.env.ONEMAP_API_PASSWORD,
+      }
+      );
+      const token_data = response.data;
+      return token_data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+* Retrieves or refreshes a valid OneMap API token
+*
+* @async
+* @param {Object} connection - Database connection object
+* @returns {Promise<Object>} A valid token object containing token_name, expire_date, and access_token
+* @throws {Error} If token retrieval or refresh fails
+*/
+async function getValidToken(connection) {
+  // Get the token from the DB
+  let token = await getAccessToken(connection, "onemap");
+  
+  const current_time_stamp = Math.floor(Date.now() / 1000);
+  // Request for new Token if there are no token or expiered
+  if (!token || current_time_stamp > token.expire_date) {
+      const token_result = await requestOneMapToken();
+      const newToken = {
+          token_name: "onemap",
+          expire_date: token_result.expiry_timestamp,
+          access_token: token_result.access_token
+      };
+      if (!token) {
+          // If there were no token, save it in DB
+          await saveAccessToken(connection, newToken);
+      } else {
+          // If there were token, update DB
+          await updateAccessToken(connection, newToken);
+      }
+      token = newToken; 
+  }
+  return token;
+}
+
 /**
  * API Error Codes 
  * 400 - Please send the access token in the request header as a bearer token.
@@ -70,40 +191,30 @@ function countPicturesLocation(districtNo, type) {
 /**
  * Performs reverse geocoding using OneMap API to retrieve the postal code for a given latitude and longitude.
  *
+ * @async
+ * @param {object} connection - The MySQL database connection object.
  * @param {number} latitude - The latitude coordinate.
  * @param {number} longitude - The longitude coordinate.
- * @returns {Promise<string|null>} The postal code if found, otherwise null.
+ * @returns {Promise<string>} The postal code if found
  * @throws Will log an error if the request fails or if latitude/longitude is null.
  * 
  */
-async function reverseGeocoding(latitude, longitude) {
-  const requestURL = `https://www.onemap.gov.sg/api/public/revgeocode?location=${latitude},${longitude}&buffer=100&addressType=All&otherFeatures=N`;
-
+async function reverseGeocoding(connection, latitude, longitude) {
   if (!latitude || !longitude) {
-    console.error('Error reverseGeocoding: Null value');
-    return null;
+    throw new Error('Error reverseGeocoding: Null value');
   }
-  try {
-    const response = await axios.get(requestURL, {
-      headers: {
-        'Authorization': process.env.KEY_ONEMAP_API
-      }
-    });
-    console.log(response);
-    return response.data.GeocodeInfo[0].POSTALCODE; // Return the postal code    
-  } catch (error) {
-    console.error('Error reverseGeocoding:\n', error);
-    return null;
-  }
+  let token = await getValidToken(connection);
+  const requestURL = `https://www.onemap.gov.sg/api/public/revgeocode?location=${latitude},${longitude}&buffer=100&addressType=All&otherFeatures=N`;
+  const response = await axios.get(requestURL, {
+    headers: { 'Authorization': token.access_token }
+  });
+  return response.data.GeocodeInfo[0].POSTALCODE; // Return the postal code    
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Exported function
 ///////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * TODO: Create Connection only one time during the server startup
- */
 
 /**
  * Creates a connection to the MySQL database.
@@ -141,7 +252,7 @@ function insertDataToDB(metadata, otherData) {
     let data = {
       latitude : metadata.latitude,
       longitude : metadata.longitude,
-      date : metadata.date_taken ?? "9999-12-30"
+      date : metadata.date ?? "9999-12-30"
     }
     if (!otherData) {
       data.postcode = "0";
@@ -218,37 +329,41 @@ async function createReport(request_type) {
 /**
  * Converts GPS coordinates (latitude and longitude) to postal code and district information.
  * 
- * @async
  * @param {number} latitude - The latitude of the location.
  * @param {number} longitude - The longitude of the location.
- * @returns {Object|null} An object in the format {postcode, districtNo, districtName} or null if an error occurs.
+ * @returns {Object} An object in the format {postcode, districtNo, districtName}
  */
 async function GPSToAddress(latitude, longitude) {
+  const connection = createDBConnection()
   try {
-      const postcode = await reverseGeocoding(latitude, longitude);
-      const districtData = postalData[postcode.substring(0,2)];
-      return {
-        postcode: postcode, districtNo: districtData.districtNo, districtName: districtData.districtName
-      };
-  } catch (error) {
-      console.log("Error GPStoAddress: ", error);
-      return null;
+  const postcode = await reverseGeocoding(connection, latitude, longitude);
+  const districtData = postalData[postcode.substring(0,2)];
+  return {
+    postcode: postcode,
+    districtNo: districtData.districtNo,
+    districtName: districtData.districtName
+  };
+  } catch(err) {
+    throw err; 
+  } finally {
+    connection.end();
   }
 }
 
-function fetchDB(connection) {
-  return new Promise((resolve, reject) => {
-    const query = `SELECT * FROM pictures;`;
-
-    connection.query(query, (err, results) => {
-      if (err) {
-        console.error(err);
-        reject(err);
-      } else {
-        resolve(results);
-      }
-    });
-  });
+/**
+ * Retrieves all data from the 'pictures' table in the database.
+ * 
+ * @param {Object} connection - The MySQL database connection object.
+ * @returns {Promise<Array>} - A promise that resolves to an array containing all the records retrieved from the 'pictures' table.
+ */
+async function fetchAllDB(connection) {
+  const query = `SELECT * FROM pictures;`;
+  try {
+    const [results] = await connection.promise().query(query);
+    return results;
+  } catch(err) {
+    throw err;
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -303,12 +418,18 @@ function countPicturesToday() {
   });
 }
 
-
 module.exports = {
   insertDataToDB,
   fetchGPSByID,
   GPSToAddress,
   createReport,
   createDBConnection,
-  fetchDB
+  fetchAllDB,
+
+  reverseGeocoding,
+  getAccessToken,
+  requestOneMapToken,
+  saveAccessToken,
+  updateAccessToken,
+  getValidToken
 };

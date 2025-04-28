@@ -34,10 +34,33 @@ const SECOND_SERVER_HOST = process.env.SECOND_HOST || "127.0.0.1";
 const SECOND_SERVER_PORT = process.env.SECOND_PORT || "3000";
 
 // Swagger doucumetation setup
-const swaggerUi = require('swagger-ui-express');
-const YAML = require('yamljs');
-const swaggerDocument = YAML.load('./swagger.yaml');
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// const swaggerUi = require('swagger-ui-express');
+// const YAML = require('yamljs');
+// const swaggerDocument = YAML.load('./swagger.yaml');
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "My API",
+      version: "1.0.0",
+      description: "This is a sample API using swagger-jsdoc",
+    },
+    servers: [
+      {
+        url: "http://127.0.0.1:8000",
+        description: "Development server",
+      },
+    ],
+  },
+  apis: ["*.js"],
+};
+
+const specs = swaggerJsdoc(swaggerOptions);
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 
 // AWS S3 setup
@@ -373,27 +396,23 @@ app.get(`${API_PREFIX}/classification/:id`, async (req, res) => {
   }
 });
 
-// Mock DB connection for testing
-let connection;
-try {
-  connection = db.createDBConnection();
-} catch (dbErr) {
-  console.error("DB connection error, using mock:", dbErr);
-  connection = null;
-}
-
+/**
+ * @swagger
+ * /admin/db:
+ *   get:
+ *     summary: Fetch all data from DB
+ *     description: Fetch all data from DB in JSON
+ *     responses:
+ *       200:
+ *         description: Return the data from the db in JSON
+ *       500:
+ *         description: Return error with the message
+ */
 app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
   try {
-    if (connection) {
-      const data = await db.fetchDB(connection);
-      res.json(data);
-    } else {
-      // Return mock data if no connection
-      res.json([
-        { id: 1, status: "happy", location: "Downtown", latitude: 1.2345, longitude: 103.4567 },
-        { id: 2, status: "normal", location: "Suburb", latitude: 1.3456, longitude: 103.5678 }
-      ]);
-    }
+    connection = db.createDBConnection();
+    const data = await db.fetchAllDB(connection);
+    res.json(data);
   } catch (err) {
     console.error("Error fetching DB data:", err);
     res.json([
