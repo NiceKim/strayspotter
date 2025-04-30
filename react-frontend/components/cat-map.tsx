@@ -80,18 +80,33 @@ const CatMap = forwardRef<
       // css to prevent map being higher z than navbar
       const style = document.createElement('style')
       style.innerHTML = `
-        .leaflet-tooltip, 
-        .leaflet-popup, 
-        .leaflet-overlay-pane,
-        .leaflet-marker-pane,
-        .leaflet-popup-pane {
-          z-index: 40 !important;
+        .leaflet-pane {
+          z-index: 1 !important;
+        }
+        .leaflet-tile-pane {
+          z-index: 2 !important;
+        }
+        .leaflet-overlay-pane {
+          z-index: 3 !important;
+        }
+        .leaflet-shadow-pane {
+          z-index: 4 !important;
+        }
+        .leaflet-marker-pane {
+          z-index: 5 !important;
         }
         .leaflet-tooltip-pane {
-          z-index: 45 !important;
+          z-index: 6 !important;
+        }
+        .leaflet-popup-pane {
+          z-index: 7 !important;
         }
         .leaflet-control {
-          z-index: 30 !important;
+          z-index: 8 !important;
+        }
+        .leaflet-top,
+        .leaflet-bottom {
+          z-index: 9 !important;
         }
       `
       document.head.appendChild(style)
