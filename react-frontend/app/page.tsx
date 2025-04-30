@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
 import { fetchGalleryImages, fetchImageUrl, fetchReport, extractStrayCount } from "@/services/api"
+import CatMap from "@/components/cat-map";
 
 export default function Home() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -15,7 +16,7 @@ export default function Home() {
   const [stats, setStats] = useState({
     today: 0,
     week: 0,
-    month: 0, 
+    month: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
 
@@ -108,6 +109,9 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Map Section */}
+      <CatMap/>
+
       {/* Gallery Section */}
       <section id="gallery" className="bg-[#506266] py-12 text-center md:py-16">
         <div className="container mx-auto px-4">
@@ -133,7 +137,7 @@ export default function Home() {
                     alt={`Cat ${index + 1}`}
                     width={400}
                     height={400}
-                    className="h-full w-full object-cover brightness-75 transition-all duration-300 hover:brightness-100"
+                    className="h-full w-full object-cover brightness-100 transition-all duration-300 hover:brightness-100"
                     unoptimized // Use this for external images
                   />
                 </div>
@@ -149,7 +153,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Team Section */}
+
+      {/* Team Section
       <section id="founders" className="bg-[#042940] py-12 text-center md:py-16">
         <div className="container mx-auto px-4">
           <h2 className="section-title mb-12 text-4xl text-white md:text-5xl lg:text-6xl">Our Team</h2>
@@ -214,6 +219,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      */}
 
       {/* Report Section */}
       <section className="py-12 md:py-16">

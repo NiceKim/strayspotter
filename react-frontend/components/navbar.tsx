@@ -34,42 +34,66 @@ export default function Navbar({ openUploadModal }: { openUploadModal?: () => vo
       <ul
         className={`absolute left-0 right-0 top-[4.5rem] flex-col bg-gray-800 py-2 md:static md:flex md:flex-row md:space-x-8 md:py-0 ${isMenuOpen ? "flex" : "hidden md:flex"}`}
       >
-        <li className={`px-5 py-2 md:py-0 ${isActive("/") ? "bg-primary rounded-md" : ""}`}>
+        <li className="px-5 py-2 md:p-0">
           <Link
             href="/"
-            className="nav-link text-white hover:bg-white hover:bg-opacity-10 hover:text-primary md:px-4 md:py-2 md:rounded-md"
+            className={`block rounded-md md:px-4 md:py-2 text-white ${
+              isActive("/") 
+                ? "bg-primary" 
+                : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
+            }`}
           >
             Home
           </Link>
         </li>
-        <li className={`px-5 py-2 md:py-0 ${isActive("/gallery") ? "bg-primary rounded-md" : ""}`}>
+        <li className="px-5 py-2 md:p-0">
           <Link
             href="/gallery"
-            className="nav-link text-white hover:bg-white hover:bg-opacity-10 hover:text-primary md:px-4 md:py-2 md:rounded-md"
+            className={`block rounded-md md:px-4 md:py-2 text-white ${
+              isActive("/gallery") 
+                ? "bg-primary" 
+                : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
+            }`}
           >
             Gallery
           </Link>
         </li>
-        <li className={`px-5 py-2 md:py-0 ${pathname === "/#founders" ? "bg-primary rounded-md" : ""}`}>
+        {/*
+          <li className="px-5 py-2 md:p-0">
           <Link
-            href="/#founders"
-            className="nav-link text-white hover:bg-white hover:bg-opacity-10 hover:text-primary md:px-4 md:py-2 md:rounded-md"
+              href="/#founders"
+              className={`block rounded-md md:px-4 md:py-2 text-white ${
+                  pathname === "/#founders"
+                      ? "bg-primary"
+                      : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
+              }`}
           >
             Team
           </Link>
         </li>
-        <li className={`px-5 py-2 md:py-0 ${isActive("/map") ? "bg-primary rounded-md" : ""}`}>
+        */}
+        {/*
+          <li className="px-5 py-2 md:p-0">
           <Link
-            href="/map"
-            className="nav-link text-white hover:bg-white hover:bg-opacity-10 hover:text-primary md:px-4 md:py-2 md:rounded-md"
+              href="/map"
+              className={`block rounded-md md:px-4 md:py-2 text-white ${
+                  isActive("/map")
+                      ? "bg-primary"
+                      : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
+              }`}
           >
             Map
           </Link>
         </li>
-        <li className={`px-5 py-2 md:py-0 ${isActive("/report") ? "bg-primary rounded-md" : ""}`}>
+        */}
+        <li className="px-5 py-2 md:p-0">
           <Link
             href="/report"
-            className="nav-link text-white hover:bg-white hover:bg-opacity-10 hover:text-primary md:px-4 md:py-2 md:rounded-md"
+            className={`block rounded-md md:px-4 md:py-2 text-white ${
+              isActive("/report") 
+                ? "bg-primary" 
+                : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
+            }`}
           >
             Report
           </Link>
@@ -88,4 +112,3 @@ export default function Navbar({ openUploadModal }: { openUploadModal?: () => vo
     </nav>
   )
 }
-
