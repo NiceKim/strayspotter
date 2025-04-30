@@ -15,7 +15,7 @@ export default function Home() {
   const [stats, setStats] = useState({
     today: 0,
     week: 0,
-    month: 0,
+    month: 0, 
   })
   const [isLoading, setIsLoading] = useState(true)
 
