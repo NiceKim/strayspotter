@@ -37,7 +37,7 @@ export default function Navbar({ openUploadModal }: { openUploadModal?: () => vo
         <li className="px-5 py-2 md:p-0">
           <Link
             href="/"
-            className={`block rounded-md md:px-4 md:py-2 text-white ${
+            className={`nav-link rounded-md md:px-4 md:py-2 text-white ${
               isActive("/") 
                 ? "bg-primary" 
                 : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
@@ -49,7 +49,7 @@ export default function Navbar({ openUploadModal }: { openUploadModal?: () => vo
         <li className="px-5 py-2 md:p-0">
           <Link
             href="/gallery"
-            className={`block rounded-md md:px-4 md:py-2 text-white ${
+            className={`nav-link rounded-md md:px-4 md:py-2 text-white ${
               isActive("/gallery") 
                 ? "bg-primary" 
                 : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
@@ -62,7 +62,7 @@ export default function Navbar({ openUploadModal }: { openUploadModal?: () => vo
           <li className="px-5 py-2 md:p-0">
           <Link
               href="/#founders"
-              className={`block rounded-md md:px-4 md:py-2 text-white ${
+              className={`nav-link rounded-md md:px-4 md:py-2 text-white ${
                   pathname === "/#founders"
                       ? "bg-primary"
                       : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
@@ -72,11 +72,11 @@ export default function Navbar({ openUploadModal }: { openUploadModal?: () => vo
           </Link>
         </li>
         */}
-        {/*
+
           <li className="px-5 py-2 md:p-0">
           <Link
-              href="/map"
-              className={`block rounded-md md:px-4 md:py-2 text-white ${
+              href="/#map"
+              className={`nav-link rounded-md md:px-4 md:py-2 text-white ${
                   isActive("/map")
                       ? "bg-primary"
                       : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
@@ -85,11 +85,11 @@ export default function Navbar({ openUploadModal }: { openUploadModal?: () => vo
             Map
           </Link>
         </li>
-        */}
+
         <li className="px-5 py-2 md:p-0">
           <Link
             href="/report"
-            className={`block rounded-md md:px-4 md:py-2 text-white ${
+            className={`nav-link rounded-md md:px-4 md:py-2 text-white ${
               isActive("/report") 
                 ? "bg-primary" 
                 : "hover:bg-white hover:bg-opacity-10 hover:text-primary"

@@ -44,6 +44,8 @@ type CatMapProps = {
   iconSize?: [number, number]
   className?: string
   limit?: number
+  marginTop?: string | number
+  marginBottom?: string | number
 }
 
 const CatMap = forwardRef<
@@ -62,13 +64,43 @@ const CatMap = forwardRef<
   iconUrl = "/resources/icon.png",
   iconSize = [45, 50],
   className = "mx-auto overflow-hidden rounded-lg border-4 border-gray-800",
-  limit = 20
+  limit = 20,
+  marginTop = 0,
+  marginBottom = 0
 }, ref) => {
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [markers, setMarkers] = useState<CatMarker[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const leafletRef = useRef<typeof Leaflet>(null)
   const mapRef = useRef(null)
+
+  // Add a useEffect to adjust Leaflet's default z-index values
+  useEffect(() => {
+    if (typeof window !== 'undefined' && document) {
+      // css to prevent map being higher z than navbar
+      const style = document.createElement('style')
+      style.innerHTML = `
+        .leaflet-tooltip, 
+        .leaflet-popup, 
+        .leaflet-overlay-pane,
+        .leaflet-marker-pane,
+        .leaflet-popup-pane {
+          z-index: 40 !important;
+        }
+        .leaflet-tooltip-pane {
+          z-index: 45 !important;
+        }
+        .leaflet-control {
+          z-index: 30 !important;
+        }
+      `
+      document.head.appendChild(style)
+
+      return () => {
+        document.head.removeChild(style)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const loadLeaflet = async () => {
@@ -131,7 +163,10 @@ const CatMap = forwardRef<
 
   if (!isMapLoaded || !leafletRef.current) {
     return (
-      <div style={{ height, width, maxWidth }} className={className + " flex items-center justify-center"}>
+      <div
+        style={{ height, width, maxWidth, marginTop, marginBottom }}
+        className={className + " flex items-center justify-center"}
+      >
         <div>Loading map...</div>
       </div>
     )
@@ -143,7 +178,11 @@ const CatMap = forwardRef<
       style={{
         height,
         width,
-        maxWidth
+        maxWidth,
+        marginTop,
+        marginBottom,
+        position: "relative",
+        zIndex: 10
       }}
     >
       <MapContainer
@@ -164,7 +203,7 @@ const CatMap = forwardRef<
         />
 
         {isLoading ? (
-          <div className="absolute left-1/2 top-1/2 z-[1000] -translate-x-1/2 -translate-y-1/2 bg-white p-2 text-center">
+          <div className="absolute left-1/2 top-1/2 z-[40] -translate-x-1/2 -translate-y-1/2 bg-white p-2 text-center">
             Loading markers...
           </div>
         ) : (

@@ -24,7 +24,6 @@ export default function Home() {
     const loadData = async () => {
       setIsLoading(true)
       try {
-        // Fetch gallery preview images
         const imageKeys = await fetchGalleryImages(4)
         const imageUrls = await Promise.all(
           imageKeys.map(async (key) => {
@@ -110,7 +109,9 @@ export default function Home() {
       </header>
 
       {/* Map Section */}
-      <CatMap/>
+      <div id="map">
+         <CatMap marginBottom={"50px"} marginTop={"50px"}/>
+      </div>
 
       {/* Gallery Section */}
       <section id="gallery" className="bg-[#506266] py-12 text-center md:py-16">
