@@ -1,13 +1,13 @@
 openapi: 3.0.0
 info:
-  version: 1.0.0
+  version: 1.0.1
   title: My API
   description: This is a sample server Stray Spotter
 servers:
   - url: http://127.0.0.1:8000
     description: Development server
 paths:
-  /images:
+  /api/images:
     get:
       summary: Retrieves a list of image keys from the cloud
       description: |
@@ -41,7 +41,7 @@ paths:
                   error:
                     type: string
                     description: Error message explaining the cause of failure
-  /image-url:
+  /api/image-url:
     get:
       summary: Generates a pre-signed URL.
       description: Generates a pre-signed URL from the cloud.
@@ -67,7 +67,7 @@ paths:
           description: Bad Request. Missing key query parameter.
         '500':
           description: Internal server error if fetching data or generating URL fails.
-  /report:
+  /api/report:
     get:
       summary: Generates a report based on the time frame method.
       description: Generates a report based on the specified time frame ('day', 'week', 'month').
@@ -91,7 +91,7 @@ paths:
           description: Bad Request. Missing or invalid 'method' query parameter.
         '500':
           description: Internal server error if report generation or database interaction fails.
-  /classification/{id}:
+  /api/classification/{id}:
     get:
       summary: Classifies an image as a cat or not
       description: |
@@ -124,7 +124,7 @@ paths:
                   error:
                     type: string
                     description: Error message explaining the cause of failure.
-  /upload:
+  /api/upload:
     post:
       summary: Handles file upload, processes EXIF data, and stores image metadata in the database.
       description: Uploads an image file, processes EXIF data, stores metadata (latitude, longitude, etc.), and uploads the image to cloud storage.
@@ -176,3 +176,14 @@ paths:
                   error:
                     type: string
                     description: Error message detailing the cause of the failure.
+
+
+  /api/admin/db:
+    get:
+      summary: Fetch all data from DB
+      description: Fetch all data from DB in JSON
+      responses:
+        200:
+          description: Return the data from the db in JSON
+        500:
+          description: Return error with the message

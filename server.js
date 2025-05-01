@@ -34,29 +34,10 @@ const SECOND_SERVER_HOST = process.env.SECOND_HOST || "127.0.0.1";
 const SECOND_SERVER_PORT = process.env.SECOND_PORT || "3000";
 
 // Swagger doucumetation setup
-const swaggerJsdoc = require("swagger-jsdoc");
-const swaggerUi = require("swagger-ui-express");
-const swaggerOptions = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "My API",
-      version: "1.0.0",
-      description: "This is a sample API using swagger-jsdoc",
-    },
-    servers: [
-      {
-        url: "http://127.0.0.1:8000",
-        description: "Development server",
-      },
-    ],
-  },
-  apis: ["*.js"],
-};
-
-const specs = swaggerJsdoc(swaggerOptions);
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(specs));
-
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // AWS S3 setup
 const multer = require('multer');
@@ -86,6 +67,10 @@ const db = require('./db.js');
 const exifr = require('exifr');
 const heicConvert = require('heic-convert');
 const { default: axios } = require('axios');
+
+///////////////////////////////////////////////////////////////////////////////////////
+// UTILITY FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Converts a HEIC image buffer to a JPEG image buffer.
@@ -392,16 +377,9 @@ app.get(`${API_PREFIX}/classification/:id`, async (req, res) => {
 });
 
 /**
- * @swagger
- * /admin/db:
- *   get:
- *     summary: Fetch all data from DB
- *     description: Fetch all data from DB in JSON
- *     responses:
- *       200:
- *         description: Return the data from the db in JSON
- *       500:
- *         description: Return error with the message
+ * Fetch all data from DB in JSON
+ *
+ * @returns {Object} the data from the db in JSON
  */
 app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
   try {
@@ -417,7 +395,6 @@ app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
   }
 });
 
-
 // Add a more permissive error handler
 app.use((err, req, res, next) => {
   console.error('Global error handler caught:', err);
@@ -426,7 +403,6 @@ app.use((err, req, res, next) => {
     error: err.message
   });
 });
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // SERVER STARTUP
