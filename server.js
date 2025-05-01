@@ -34,11 +34,6 @@ const SECOND_SERVER_HOST = process.env.SECOND_HOST || "127.0.0.1";
 const SECOND_SERVER_PORT = process.env.SECOND_PORT || "3000";
 
 // Swagger doucumetation setup
-// const swaggerUi = require('swagger-ui-express');
-// const YAML = require('yamljs');
-// const swaggerDocument = YAML.load('./swagger.yaml');
-// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 const swaggerOptions = {
@@ -422,10 +417,6 @@ app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
   }
 });
 
-// Add a health check endpoint
-app.get(`${API_PREFIX}/health`, (req, res) => {
-  res.status(200).json({ status: "ok", message: "Server is running" });
-});
 
 // Add a more permissive error handler
 app.use((err, req, res, next) => {
@@ -436,11 +427,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// This route should come after all API routes
-// Serve React app for all other routes (catchall)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, client_folder_name, 'index.html'));
-});
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // SERVER STARTUP
