@@ -9,10 +9,9 @@ services:
     environment:
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_PASSWORD=your_mysql_password
+      - DB_PASSWORD=${DB_PASSWORD}
       - ACCESS_KEY_ID=${ACCESS_KEY_ID}
       - SECRET_ACCESS_KEY_ID=${SECRET_ACCESS_KEY_ID}
-      - KEY_ONEMAP_API=${KEY_ONEMAP_API}
       - HOST=0.0.0.0
       - PORT=3000
       - SECOND_HOST=app
@@ -46,9 +45,9 @@ services:
   db:
     image: mysql:8.4
     ports:
-      - "3306:3306"
+      - "3307:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=your_mysql_password
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=strayspotter_database
     volumes:
       - mysql-data:/var/lib/mysql
