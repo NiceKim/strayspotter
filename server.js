@@ -14,13 +14,6 @@ app.use(cors({
   allowedHeaders: '*' // Allow all headers
 }));
 
-// Change client folder to react-frontend/build for production build
-// or react-frontend/public for development
-const client_folder_name = "react-frontend/build";
-
-// Serve static files from React app
-app.use(express.static(path.join(__dirname, client_folder_name)));
-
 // Also keep API routes accessible - increase limit size for larger uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -43,7 +36,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 const multer = require('multer');
 const storage = multer.memoryStorage();
 // Increase file size limit
-const upload = multer({
+const receiveImage = multer({
   storage: storage,
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB
 }).single('image');
@@ -96,7 +89,7 @@ async function convertHeicToJpg(inputBuffer) {
  * @param {string} unique_id A unique identifier for the file being uploaded.
  * @throws {Error} Throws an error if there is an issue during the upload process.
  */
-async function uploadPicture(fileData, res, unique_id) {
+async function uploadToCloud(fileData, res, unique_id) {
     const params = {
       Bucket: bucket_name,
       Key: unique_id,
@@ -111,6 +104,33 @@ async function uploadPicture(fileData, res, unique_id) {
       // Still return success even if upload fails (for testing purposes)
       res.send(`File processed with ID: ${unique_id}`);
     }
+}
+
+/**
+ * Creates a report based on the total number of pictures and the count per district for a given request type.
+ * 
+ * @param {"day" | "week" | "month"} request_type - The time range for counting pictures.
+ * @returns {Promise<string>} Resolves with the generated HTML report.
+ */
+async function createReport(request_type) {
+  let connection = db.createDBConnection();
+  let report = "";
+
+  try {
+    let total = await db.countPictures(connection, 0, request_type);
+    report = report.concat(`TOTAL NUMBER: ${total}<br><br>`);
+
+    for (let district_i = 1; district_i <= 28; district_i++) {
+      const district_name = NumbertoName[district_i];
+      const count = await db.countPictures(connection, district_i, request_type);
+      report = report.concat(`${district_name}: ${count}<br>`);
+    }
+    return report;
+  } finally {
+    if (connection.state !== "disconnected") {
+      connection.end()
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -161,14 +181,14 @@ app.get(`${API_PREFIX}/images`, async (req, res) => {
  */
 app.get(`${API_PREFIX}/image-url`, async (req, res) => {
   const { key } = req.query;
-
+  const connection  = db.createDBConnection();
   try {
     // Skip DB call if needed, just for temporary dev mode
     let data_latitude = "";
     let data_longitude = "";
 
     try {
-      const data = await db.fetchGPSByID(key.slice(1));
+      const data = await db.fetchGPSByID(connection, key.slice(1));
       if (data && data[0]) {
         data_latitude = data[0].latitude;
         data_longitude = data[0].longitude;
@@ -210,6 +230,7 @@ app.get(`${API_PREFIX}/image-url`, async (req, res) => {
       longitude: "0"
     });
   }
+  connection.end();
 });
 
 /**
@@ -226,7 +247,7 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
   }
 
   try {
-    const reportData = await db.createReport(method);
+    const reportData = await createReport(method);
     res.json(reportData);
   } catch (err) {
     console.error("Report generation error:", err);
@@ -254,18 +275,21 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
  * @param {string} req.body.category The category representing the cat's condition (e.g., "happy", "normal", "sad").
  * @throws {Error} Throws an error if there is an issue during file upload, EXIF data parsing, or database insertion.
  */
+// TODO : REFACTOR, and use uploadImage as a middle wear ('url', uploadImage, (req,res)=>{})
+// 콜백 지옥 처리, 입력값 다시 처리, 무의미한 Extracted data 없애고 모든 data 하나의 객체로 감싸서 처리
+// 메타데이터 있을 때 없을 때 중복 코드 삭제
 app.post(`${API_PREFIX}/upload`, async (req, res) => {
-  upload(req, res, async (err) => {
+  receiveImage(req, res, async (err) => {
     if (err) {
       console.error("Upload error:", err);
       return res.status(500).send(err.message);
     }
-
     if (!req.file) {
       return res.status(400).send('No file selected!');
     }
 
     try {
+      const connection = db.createDBConnection();
       // Converting heic to jpg with metadata
       let exifData;
       try {
@@ -274,7 +298,6 @@ app.post(`${API_PREFIX}/upload`, async (req, res) => {
         console.error("EXIF parsing error:", exifErr);
         // Continue without EXIF data
       }
-
       let otherData = [];
       otherData.push(req.body.status || "normal");
       let fileData;
@@ -288,27 +311,27 @@ app.post(`${API_PREFIX}/upload`, async (req, res) => {
         otherData.push("Null");
 
         try {
-          const picture_id = await db.insertDataToDB(extractedData, otherData);
+          const picture_id = await db.insertDataToDB(connection, extractedData, otherData);
           console.log("Generated picture ID:", picture_id);
 
           if (req.file.mimetype == 'image/heic') {
             fileData = await convertHeicToJpg(req.file.buffer);
-            await uploadPicture(fileData, res, 'k' + picture_id);
+            await uploadToCloud(fileData, res, 'k' + picture_id);
           } else if (req.file.mimetype.startsWith('image/')) {
             fileData = req.file.buffer;
-            await uploadPicture(fileData, res, 'k' + picture_id);
+            await uploadToCloud(fileData, res, 'k' + picture_id);
           } else {
             console.error("IT IS NOT AN IMAGE");
             // Process it anyway
             fileData = req.file.buffer;
-            await uploadPicture(fileData, res, 'k' + picture_id);
+            await uploadToCloud(fileData, res, 'k' + picture_id);
           }
         } catch (dbErr) {
           console.error("Database error:", dbErr);
           // Generate a random ID for testing
           const picture_id = 'temp' + Math.floor(Math.random() * 10000);
           fileData = req.file.buffer;
-          await uploadPicture(fileData, res, 'k' + picture_id);
+          await uploadToCloud(fileData, res, 'k' + picture_id);
         }
       }
       // If there are metadata, the latitude and longitude are extracted
@@ -321,7 +344,7 @@ app.post(`${API_PREFIX}/upload`, async (req, res) => {
         };
 
         try {
-          const address = await db.GPSToAddress(extractedData.latitude, extractedData.longitude);
+          const address = await db.GPSToAddress(connection, extractedData.latitude, extractedData.longitude);
           otherData.push(address || "Unknown");
         } catch (gpsErr) {
           console.error("GPS to address error:", gpsErr);
@@ -329,31 +352,33 @@ app.post(`${API_PREFIX}/upload`, async (req, res) => {
         }
 
         try {
-          const picture_id = await db.insertDataToDB(extractedData, otherData);
+          const picture_id = await db.insertDataToDB(connection, extractedData, otherData);
 
           if (req.file.mimetype == 'image/heic') {
             fileData = await convertHeicToJpg(req.file.buffer);
-            await uploadPicture(fileData, res, 'k' + picture_id);
+            await uploadToCloud(fileData, res, 'k' + picture_id);
           } else if (req.file.mimetype.startsWith('image/')) {
             fileData = req.file.buffer;
-            await uploadPicture(fileData, res, 'k' + picture_id);
+            await uploadToCloud(fileData, res, 'k' + picture_id);
           } else {
             console.error("IT IS NOT AN IMAGE");
             // Process it anyway
             fileData = req.file.buffer;
-            await uploadPicture(fileData, res, 'k' + picture_id);
+            await uploadToCloud(fileData, res, 'k' + picture_id);
           }
         } catch (dbErr) {
           console.error("Database error:", dbErr);
           // Generate a random ID for testing
           const picture_id = 'temp' + Math.floor(Math.random() * 10000);
           fileData = req.file.buffer;
-          await uploadPicture(fileData, res, 'k' + picture_id);
+          await uploadToCloud(fileData, res, 'k' + picture_id);
         }
       }
     } catch (generalErr) {
       console.error("General error in upload:", generalErr);
       res.status(200).send("File processed but with errors"); // Return 200 even with errors for testing
+    } finally {
+      connection.end()
     }
   });
 });
@@ -383,8 +408,7 @@ app.get(`${API_PREFIX}/classification/:id`, async (req, res) => {
  */
 app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
   try {
-    connection = db.createDBConnection();
-    const data = await db.fetchAllDB(connection);
+    const data = await db.fetchAllDB();
     res.json(data);
   } catch (err) {
     console.error("Error fetching DB data:", err);
@@ -395,7 +419,6 @@ app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
   }
 });
 
-// Add a more permissive error handler
 app.use((err, req, res, next) => {
   console.error('Global error handler caught:', err);
   res.status(200).json({
