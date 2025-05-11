@@ -82,7 +82,7 @@ async function convertHeicToJpg(inputBuffer) {
 }
 
 /**
- * Uploads data to Wasabi cloud storage.
+ * Uploads data to cloud storage.
  *
  * @param {Buffer} fileData The file data (image or other content) to upload.
  * @param {object} res The response object to send the result back to the client.
@@ -189,9 +189,9 @@ app.get(`${API_PREFIX}/image-url`, async (req, res) => {
 
     try {
       const data = await db.fetchGPSByID(connection, key.slice(1));
-      if (data && data[0]) {
-        data_latitude = data[0].latitude;
-        data_longitude = data[0].longitude;
+      if (data) {
+        data_latitude = data.latitude;
+        data_longitude = data.longitude;
       }
     } catch (dbErr) {
       console.error('DB error, continuing:', dbErr);
@@ -204,7 +204,7 @@ app.get(`${API_PREFIX}/image-url`, async (req, res) => {
     const params = {
       Bucket: bucket_name,
       Key: key,
-      Expires: 60 * 60, // Increased to 1 hour
+      Expires: 60 * 60, // seconds, set to one hour
     };
 
     try {
@@ -275,9 +275,11 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
  * @param {string} req.body.category The category representing the cat's condition (e.g., "happy", "normal", "sad").
  * @throws {Error} Throws an error if there is an issue during file upload, EXIF data parsing, or database insertion.
  */
-// TODO : REFACTOR, and use uploadImage as a middle wear ('url', uploadImage, (req,res)=>{})
-// 콜백 지옥 처리, 입력값 다시 처리, 무의미한 Extracted data 없애고 모든 data 하나의 객체로 감싸서 처리
-// 메타데이터 있을 때 없을 때 중복 코드 삭제
+// TODO : REFACTOR, and use receiveImage as a middleware ('url', receiveImage, (req,res)=>{})
+// 콜백 지옥 처리, 
+// 날짜 처리는 inserDatatoDB 안에서 처리리
+// 메타데이터 있을 때 없을 때 중복 코드 삭제 ,입력값 처리 필요 없음
+// (Null 값은 따로 처리 안해줘도 JS에서 접근하면 에러가 아니라 undefined->Null))
 app.post(`${API_PREFIX}/upload`, async (req, res) => {
   receiveImage(req, res, async (err) => {
     if (err) {
@@ -298,22 +300,25 @@ app.post(`${API_PREFIX}/upload`, async (req, res) => {
         console.error("EXIF parsing error:", exifErr);
         // Continue without EXIF data
       }
-      let otherData = [];
-      otherData.push(req.body.status || "normal");
+      // let otherData = [];
+      // otherData.push(req.body.status || "normal");
       let fileData;
-      let extractedData;
+      // let extractedData;
 
+      const tempData = {
+        latitude : 0,
+        longitude : 0,
+        date : new Date(),
+        postcode : 'NA', 
+        districtNo : -1,
+        districtName : 'NA',
+        catStatus : req.body.status || "happy"
+      };
       // If there are no metadata, default values for latitude and longitude are used.
       if (!exifData) {
-        extractedData = {
-          latitude:"0", longitude:"0"
-        };
-        otherData.push("Null");
-
         try {
-          const picture_id = await db.insertDataToDB(connection, extractedData, otherData);
+          const picture_id = await db.insertDataToDB(connection, tempData);
           console.log("Generated picture ID:", picture_id);
-
           if (req.file.mimetype == 'image/heic') {
             fileData = await convertHeicToJpg(req.file.buffer);
             await uploadToCloud(fileData, res, 'k' + picture_id);
@@ -337,23 +342,24 @@ app.post(`${API_PREFIX}/upload`, async (req, res) => {
       // If there are metadata, the latitude and longitude are extracted
       // and used to convert the GPS coordinates into an address.
       else {
-        extractedData = {
-          latitude: exifData.latitude || 0,
-          longitude: exifData.longitude || 0,
-          date: exifData.DateTimeOriginal || new Date()
-        };
-
+        tempData.latitude = exifData.latitude;
+        tempData.longitude = exifData.longitude;
+        tempData.date = exifData.DateTimeOriginal || tempData.date;
+        // extractedData = {
+        //   latitude: exifData.latitude || 0,
+        //   longitude: exifData.longitude || 0,
+        //   date: exifData.DateTimeOriginal || new Date()
+        // };
         try {
-          const address = await db.GPSToAddress(connection, extractedData.latitude, extractedData.longitude);
-          otherData.push(address || "Unknown");
+          const address = await db.GPSToAddress(connection, tempData.latitude, tempData.longitude);
+          tempData.postcode = address.postcode;
+          tempData.districtName = address.districtName;
+          tempData.districtNo = address.districtNo;
         } catch (gpsErr) {
           console.error("GPS to address error:", gpsErr);
-          otherData.push("Unknown");
         }
-
         try {
-          const picture_id = await db.insertDataToDB(connection, extractedData, otherData);
-
+          const picture_id = await db.insertDataToDB(connection, tempData);
           if (req.file.mimetype == 'image/heic') {
             fileData = await convertHeicToJpg(req.file.buffer);
             await uploadToCloud(fileData, res, 'k' + picture_id);
@@ -376,7 +382,7 @@ app.post(`${API_PREFIX}/upload`, async (req, res) => {
       }
     } catch (generalErr) {
       console.error("General error in upload:", generalErr);
-      res.status(200).send("File processed but with errors"); // Return 200 even with errors for testing
+      res.status(200).send("File processed but with errors");
     } finally {
       connection.end()
     }
@@ -407,8 +413,9 @@ app.get(`${API_PREFIX}/classification/:id`, async (req, res) => {
  * @returns {Object} the data from the db in JSON
  */
 app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
+  const connection = db.createDBConnection();
   try {
-    const data = await db.fetchAllDB();
+    const data = await db.fetchAllDB(connection);
     res.json(data);
   } catch (err) {
     console.error("Error fetching DB data:", err);
@@ -416,6 +423,8 @@ app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
       { id: 1, status: "happy", location: "Downtown", latitude: 1.2345, longitude: 103.4567 },
       { id: 2, status: "normal", location: "Suburb", latitude: 1.3456, longitude: 103.5678 }
     ]);
+  } finally {
+    connection.end()
   }
 });
 

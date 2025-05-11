@@ -12,7 +12,6 @@ const sampleData = {
   catStatus : 'happy'
 };
 
-
 function createDBConnection() {
   const connection = mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
@@ -36,22 +35,19 @@ async function clearTestDB(connection) {
   return result;
 }
 
-describe('insertDatatoDB', () => {
+describe.only('insertDatatoDB', () => {
   
   const mockData = {
-    metadata : {
-      latitude: sampleData.latitude,
-      longitude: sampleData.longitude,
-      date: sampleData.date
-    },
-    otherdata : [
-      sampleData.cat_status,
-      {
-        postcode: sampleData.postcode,
-        districtNo: sampleData.districtNo,
-        districtName: sampleData.districtName
-      }
-    ]
+    latitude : 1.31576,
+    longitude : 103.914,
+    date : '2024-01-01',
+    postcode : '123456', 
+    districtNo : '12',
+    districtName : 'TestDistrict',
+    catStatus : 'happy'
+  };
+  const emptyData = {
+    catStatus : 'happy'
   };
 
   let connection;
@@ -65,11 +61,20 @@ describe('insertDatatoDB', () => {
 
   it('should return insertID after inserting, and verify DB insert', async () => {
  
-    const result = await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
+    const result = await insertDataToDB(connection, mockData);
     const check = await selectFunction(connection, result);
 
     expect(typeof result).toBe('number');
     expect(check.length).toBe(1);
+  });
+
+  it('should handle empty data', async () => {
+    const result = await insertDataToDB(connection, emptyData);
+    const check = await selectFunction(connection, result);
+    expect(check[0].date_taken).toBeInstanceOf(Date);
+    expect(check[0].latitude).toBe(null);
+    expect(check[0].longitude).toBe(null);
+    expect(check[0].cat_status).toBe("happy");
   });
 })
 
@@ -99,12 +104,16 @@ describe('fetchGPSByID', () => {
     connection.end();
   });
 
-  it('should return array with latitude and longitude', async () => {
+  it('should return object with latitude and longitude', async () => {
     const testID = await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
     const result = await fetchGPSByID(connection, testID);
+    expect(result.latitude).toBe(sampleData.latitude)
+    expect(result.longitude).toBe(sampleData.longitude)
+  })
 
-    expect(result[0].latitude).toBe(sampleData.latitude)
-    expect(result[0].longitude).toBe(sampleData.longitude)
+  it('should throw error with invalid ID', async () => {
+    const invalidID = "?"
+    await expect(fetchGPSByID(connection, invalidID)).rejects.toThrowError('No data found for the given ID');
   })
 })
 
@@ -130,6 +139,8 @@ describe('countPictures', () => {
     connection = createDBConnection();
     await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
     await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
+    mockData.otherdata[1].districtNo = 11;
+    await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
   });
   afterAll(async () => {
     await clearTestDB(connection);
@@ -141,7 +152,6 @@ describe('countPictures', () => {
   })
   
   it('should return the number of pictures that is taken this week', async () => {
- 
     expect(await countPictures(connection, 12, "week")).toBe(2);
   })
   
@@ -149,9 +159,17 @@ describe('countPictures', () => {
     expect(await countPictures(connection, 12, "month")).toBe(2);
   })
 
-  it('should throw error for invalid input', () => {
-    expect(() => countPictures(connection, 12, "invalid")).toThrowError('invalidParameterError');
+  it('should throw error for invalid range', async () => {
+     await expect(countPictures(connection, 12, "invalid")).rejects.toThrowError('Invalid range parameter given');
   });
+
+   it('should return 0 for invalid district', async () => {
+    expect(await countPictures(connection, -1, "day")).toBe(0);
+   });
+
+    it('should return total number of pictures if district is 0', async () => {
+    expect(await countPictures(connection, 0, "day")).toBe(3);
+  })
 })
 
 describe('fetchRecentPhotoID', () => {
