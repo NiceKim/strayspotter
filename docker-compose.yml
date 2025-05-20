@@ -12,10 +12,10 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - ACCESS_KEY_ID=${ACCESS_KEY_ID}
       - SECRET_ACCESS_KEY_ID=${SECRET_ACCESS_KEY_ID}
-      - HOST=0.0.0.0
-      - PORT=3000
-      - SECOND_HOST=app
-      - SECOND_PORT=3000
+      - HOST=${HOST}
+      - PORT=${PORT}
+      - SECOND_HOST=${SECOND_HOST}
+      - SECOND_PORT=${SECOND_PORT}
     volumes:
       - ./:/app
       - /app/node_modules
@@ -29,7 +29,7 @@ services:
       context: ./react-frontend
       dockerfile: Dockerfile
     ports:
-      - "3001:3000"
+      - "3001:3001"
     volumes:
       - ./react-frontend:/app
       - /app/node_modules
@@ -51,7 +51,7 @@ services:
       - MYSQL_DATABASE=strayspotter_database
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./database/database.sql:/docker-entrypoint-initdb.d/database.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app-network
     restart: unless-stopped

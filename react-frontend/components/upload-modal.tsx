@@ -33,7 +33,7 @@ export default function UploadModal({
 
     const formData = new FormData()
     formData.append("image", selectedFile)
-    formData.append("category", selectedCategory)
+    formData.append("status", selectedCategory)
 
     try {
       setIsUploading(true)
