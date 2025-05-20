@@ -8,7 +8,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 const mysql = require('mysql2');
 const axios = require('axios');
-const { postalData, NumbertoName } = require('./postal_data.js');
+const { postalData } = require('./postal_data.js');
 require('dotenv').config();
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -20,17 +20,17 @@ require('dotenv').config();
  * 
  * @async
  * @param {Object} connection - The database connection object used to execute the query.
- * @param {Object} token_info - An object containing the token details to be updated.
-  * @param {string} token_info.token_name - The name of the token to update.
-  * @param {number} token_info.expire_date - The new expiration date of the token.
-  * @param {string} token_info.access_token - The new access token.
+ * @param {Object} token - An object containing the token details to be updated.
+  * @param {string} token.token_name - The name of the token to update.
+  * @param {number} token.expire_date - The new expiration date of the token.
+  * @param {string} token.access_token - The new access token.
  * @returns {string} - The name of the token that was updated
  */
-async function updateAccessToken(connection, token_info) {
-  const query = `UPDATE tokenStore SET expire_date = ?, access_token = ? WHERE token_name = ?`;
+async function updateAccessToken(connection, token) {
+  const query = `UPDATE tokens SET expire_date = ?, access_token = ? WHERE token_name = ?`;
   const [results] = await connection.promise().query(
     query,
-    [token_info.expire_date, token_info.access_token, token_info.token_name]
+    [token.expire_date, token.access_token, token.token_name]
   );
   return results.token_name;
 }
@@ -40,13 +40,13 @@ async function updateAccessToken(connection, token_info) {
  * 
  * @async
  * @param {Object} connection - The database connection object used to execute the query.
- * @param {string} token_name - The name of the token to be retrieved.
+ * @param {string} tokenName - The name of the token to be retrieved.
  * @returns {Object|null} - The token data if found, or `null` if no token is found.
  */
-async function fetchAccessToken(connection, token_name) {
-  const query = `SELECT * FROM tokenStore WHERE token_name = ? LIMIT 1`;
+async function fetchAccessToken(connection, tokenName) {
+  const query = `SELECT * FROM tokens WHERE token_name = ?`;
   const [results] = await connection.promise().query(query,
-    [token_name]
+    [tokenName]
   );
   if (results.length == 0) {
     return null;
@@ -55,21 +55,21 @@ async function fetchAccessToken(connection, token_name) {
 }
 
 /**
- * This function inserts a new token record into the `tokenStore` table with the provided token information.
+ * This function inserts a new token record into the `tokens` table with the provided token information.
  * 
  * @async
  * @param {Object} connection - The database connection object used to execute the query.
- * @param {Object} token_info - The token information to be saved in the database.
-  * @param {string} token_info.token_name - The name of the token.
-  * @param {number} token_info.expire_date - The expiration date of the token in Unix timestamp format.
-  * @param {string} token_info.access_token - The access token string.
+ * @param {Object} token - The token information to be saved in the database.
+  * @param {string} token.token_name - The name of the token.
+  * @param {number} token.expire_date - The expiration date of the token in Unix timestamp format.
+  * @param {string} token.access_token - The access token string.
  * @returns {string} - The name of the token that was saved.
  */
-async function saveAccessToken(connection, token_info) {
-  const query =  `INSERT INTO tokenStore (token_name, expire_date, access_token) VALUES (?, ?, ?)`;
+async function saveAccessToken(connection, token) {
+  const query =  `INSERT INTO tokens (token_name, expire_date, access_token) VALUES (?, ?, ?)`;
   const [results] = await connection.promise().query(
     query, 
-    [token_info.token_name, token_info.expire_date, token_info.access_token]
+    [token.token_name, token.expire_date, token.access_token]
   );
   return results.token_name;
 }
@@ -77,7 +77,6 @@ async function saveAccessToken(connection, token_info) {
 /**
 * Requests a new authentication token from the OneMap API
 *
-* @async
 * @returns {Promise<Object>} Token data object with the following properties:
  *   - {string} access_token - JWT token for authentication
  *   - {string} expiry_timestamp - UNIX timestamp indicating when the token expires
@@ -98,8 +97,10 @@ async function requestOneMapToken() {
 *
 * @async
 * @param {Object} connection - Database connection object
-* @returns {Promise<Object>} A valid token object containing token_name, expire_date, and access_token
-* @throws {Error} If token retrieval or refresh fails
+* @returns {Promise<Object>} A valid token object with the following properties:
+ *   - {string} token_name - name of the token
+ *   - {string} access_token - JWT token for authentication
+ *   - {string} expiry_timestamp - UNIX timestamp indicating when the token expires
 */
 async function getValidToken(connection) {
   // Get the token from the DB
@@ -126,33 +127,6 @@ async function getValidToken(connection) {
   return token;
 }
 
-/**
- * Performs reverse geocoding using OneMap API to retrieve the postal code for a given latitude and longitude.
- *
- * @async
- * @param {Object} connection - The MySQL database connection object.
- * @param {number} latitude - The latitude coordinate.
- * @param {number} longitude - The longitude coordinate.
- * @returns {Promise<string>} The postal code if found
- * @throws Will log an error if the request fails or if latitude/longitude is null.
- * 
- */
-async function reverseGeocoding(connection, latitude, longitude) {
-  if (!latitude || !longitude) {
-    throw new Error('Error reverseGeocoding: Null value');
-  }
-  let token = await getValidToken(connection);
-  const requestURL = `https://www.onemap.gov.sg/api/public/revgeocode?location=${latitude},${longitude}&buffer=100&addressType=All&otherFeatures=N`;
-  try {
-  const response = await axios.get(requestURL, {
-    headers: { 'Authorization': token.access_token }
-  });
-  return response.data.GeocodeInfo[0].POSTALCODE; // Return the postal code    
-  } catch (error) {
-    console.log(error)
-  }
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Exported function
@@ -162,15 +136,24 @@ async function reverseGeocoding(connection, latitude, longitude) {
  * Creates a connection to the MySQL database.
  * 
  * This function establishes a connection to the MySQL database with the given configuration details,
- * such as host, user, database name, and password, which are used to connect to the 'strayspotter_database'.
+ * such as host, user, database name, and password, which are used to connect to either the 'strayspotter_database'
+ * or a test database depending on the value of the `test` parameter.
  * 
+ * @param {boolean} test - A flag indicating whether to use the test database (`true`) or the main database (`false`).
  * @returns {Object} The MySQL connection object used for interacting with the database.
  */
-function createDBConnection() {
+function createDbConnection(test = false) {
+  let databse_name;
+  if (test) {
+    databse_name = 'strayspotter_database_test';
+  }
+  else {
+    databse_name = 'strayspotter_database';
+  }
   const connection = mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
     user: 'root',
-    database: 'strayspotter_database',
+    database: databse_name,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT || 3306
   });
@@ -180,20 +163,18 @@ function createDBConnection() {
 /**
  * Inserts picture metadata and additional data into the database.
  * @param {Object} connection The MySQL connection object 
- * @param {Object} metadata - Object containing picture metadata:
- *   @property {string} latitude - Latitude of the picture.
- *   @property {string} longitude - Longitude of the picture.
- *   @property {string} date - Date when the picture was taken.
- * @param {Array} otherData - Array with two elements:
- *   @param {string} otherData[0] - Status string (e.g., "happy").
- *   @param {Object} otherData[1] - Address object:
- *     @property {string} postcode - Postal code.
- *     @property {string} districtNo - District number.
- *     @property {string} districtName - District name.
+ * @param {Object} data - Object containing picture's metadata and other information:
+ *   - {string} latitude - Latitude of the picture.
+ *   - {string} longitude - Longitude of the picture.
+ *   - {string} date - Date when the picture was taken.
+ *   - {string} status - Status string (e.g., "happy").
+ *   - {string} postcode - Postal code.
+ *   - {string} districtNo - District number.
+ *   - {string} districtName - District name.
  * 
  * @returns {Promise<number>} Resolves with the inserted record ID.
  */
-async function insertDataToDB (connection, data) {
+async function insertDataToDb (connection, data) {
   if (!data.date) {
     data.date = new Date();
   } 
@@ -208,17 +189,23 @@ async function insertDataToDB (connection, data) {
 }
 
 /**
- * Fetches the GPS coordinates (latitude and longitude) of a picture based on the provided ID.
+ * Fetches all metadata of a picture based on the provided ID.
  * 
- * @param {Object} connection The MySQL connection object 
- * @param {number} id - The ID of the picture whose GPS coordinates are to be fetched.
- * @returns {Promise<Object>} A Promise that resolves with an object containing the GPS coordinates:
- *   - {number} latitude - Latitude of the picture.
- *   - {number} longitude - Longitude of the picture.
+ * @param {Object} connection - The MySQL connection object.
+ * @param {number} id - The ID of the picture whose metadata is to be fetched.
+ * @returns {Promise<Object>} A Promise that resolves with an object containing:
+ *   - {number} id - Unique identifier of the picture.
+ *   - {number} latitude - Latitude where the picture was taken.
+ *   - {number} longitude - Longitude where the picture was taken.
+ *   - {string} date_taken - Date when the picture was taken (YYYY-MM-DD format).
+ *   - {number} postcode - Postcode of the location.
+ *   - {number} district_no - Numeric district code.
+ *   - {string} district_name - Name of the district (up to 20 characters).
+ *   - {string} cat_status - Status of the cat (e.g., "stray", "owned").
  * @throws {Error} Throws an error if no data is found for the given ID.
-*/
-async function fetchGPSByID(connection, id) {
-  const query = `SELECT latitude, longitude FROM pictures WHERE id = ?`;
+ */
+async function fetchByID(connection, id) {
+  const query = `SELECT * FROM pictures WHERE id = ?`;
   const [result] = await connection.promise().query(
     query,
     [id]
@@ -241,11 +228,20 @@ async function fetchGPSByID(connection, id) {
  *   - {number} districtNo
  *   - {string} districtName
  */
-async function GPSToAddress(connection, latitude, longitude) {
-  const postcode = await reverseGeocoding(connection, latitude, longitude);
+async function reverseGeocode(connection, latitude, longitude) {
+  if (!latitude || !longitude) {
+    throw new Error('Error reverseGeocoding: Null value');
+  }
+  let token = await getValidToken(connection);
+  const requestURL = `https://www.onemap.gov.sg/api/public/revgeocode?location=${latitude},${longitude}&buffer=100&addressType=All&otherFeatures=N`;
+  const response = await axios.get(requestURL, {
+    headers: { 'Authorization': token.access_token }
+  });
+  const postcode = response.data.GeocodeInfo[0].POSTALCODE;     
   const districtData = postalData[postcode.substring(0,2)];
+
   return {
-    postcode: postcode,
+    postcode: Number(postcode),
     districtNo: districtData.districtNo,
     districtName: districtData.districtName
   };
@@ -257,23 +253,23 @@ async function GPSToAddress(connection, latitude, longitude) {
  * @param {Object} connection The MySQL connection object
  * @param {number} districtNo - The district number to filter the pictures
  *  If districtNo is 0, all pictures will be returned regardless of district
- * @param {"day" | "week" | "month"} range - The time range for counting pictures
+ * @param {"day" | "week" | "month"} timeFrame - The time range for counting pictures
  *      - "day": Counts pictures taken today
  *      - "week": Counts pictures taken in the current week
  *      - "month": Counts pictures taken in the current month
  * @returns {Promise<number>} A promise that resolves to the count of pictures matching the criteria
  * @throws {Error} Throws an error if range parameter is none of provided ranges
  */
-async function countPictures(connection, districtNo, range) {
+async function countPictures(connection, districtNo, timeFrame) {
   let query = `SELECT COUNT(id) as count FROM pictures WHERE`;
   if (districtNo != 0) {
     query += ` district_no = ${districtNo} AND`
   }
-  if (range === "day") {
+  if (timeFrame === "day") {
     query += ` date_taken = CURDATE()`;
-  } else if (range === "week") {
+  } else if (timeFrame === "week") {
     query += ` WEEK(date_taken) = WEEK(CURDATE()) AND YEAR(date_taken) = YEAR(CURDATE())`;
-  } else if (range === "month") {
+  } else if (timeFrame === "month") {
     query += ` MONTH(date_taken) = MONTH(CURDATE()) AND YEAR(date_taken) = YEAR(CURDATE())`;
   } else {
     throw new Error('Invalid range parameter given');
@@ -286,12 +282,29 @@ async function countPictures(connection, districtNo, range) {
  * Retrieves all data from the 'pictures' table in the database.
  * 
  * @param {Object} connection The MySQL connection object
- * @returns {Promise<Object[]>} - A promise that resolves to an array containing all the records retrieved from the 'pictures' table.
+ * @returns {Promise<Object[]>} A promise that resolves to an array containing all the records retrieved from the 'pictures' table
  */
-async function fetchAllDB(connection) {
+async function fetchAllDb(connection) {
   const query = `SELECT * FROM pictures;`;
-    const [results] = await connection.promise().query(query);
-    return results;
+  const [results] = await connection.promise().query(query);
+  return results;
+}
+
+/**
+ * Deletes the data from the 'pictures' table based on the given ID.
+ * 
+ * @param {Object} connection The MySQL connection object 
+ * @param {number} id The ID of the picture to be deleted
+ * 
+ * @returns {Promise<number>} The number of rows affected by the deletion. If no rows are deleted, 0 is returned.
+ */
+async function deleteByID(connection, id) {
+  const query = `DELETE FROM pictures WHERE id = ?`;
+  const [result] = await connection.promise().query(
+    query,
+    [id]
+  );
+  return result.affectedRows;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -302,24 +315,26 @@ async function fetchAllDB(connection) {
  * Fetches the most recent photo IDs from the database.
   
  * @param {Object} connection The MySQL connection object
- * @param {number} number The number of photo ID to fetch from DB, 4 if no number given
+ * @param {number} photosToFetch The number of photo IDs to fetch from DB, 4 if no number given
+ * @param {number} photosToSkip The number of photo IDs to skip
  * @returns {Promise<Object[]>} - A promise that resolves with an array of results, each containing a photo ID.
  */
-async function fetchRecentPhotoID(connection, number = 4) {
-  const query = `SELECT id FROM pictures ORDER BY id DESC LIMIT ?`;
+async function fetchRecentPhotoID(connection, photosToFetch = 4, photosToSkip = 0) {
+  const query = `SELECT id FROM pictures ORDER BY id DESC LIMIT ? OFFSET ?`;
   const [result] = await connection.promise().query(
     query,
-    [number]
+    [photosToFetch, photosToSkip]
   );
   return result;
 }
 
 module.exports = {
-  insertDataToDB,
-  fetchGPSByID,
-  GPSToAddress,
+  insertDataToDb,
+  fetchByID,
+  reverseGeocode,
   countPictures,
-  fetchAllDB,
-  createDBConnection,
-  fetchRecentPhotoID
+  fetchAllDb,
+  createDbConnection,
+  fetchRecentPhotoID,
+  deleteByID
 };

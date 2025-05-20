@@ -1,4 +1,4 @@
-const { insertDataToDB, fetchGPSByID, countPictures, fetchRecentPhotoID , GPSToAddress} = require('../db.js');
+const { createDbConnection, insertDataToDb, fetchByID, countPictures, fetchRecentPhotoID , reverseGeocode, deleteByID} = require('../db.js');
 const mysql = require('mysql2');
 require('dotenv').config();
 
@@ -12,56 +12,32 @@ const sampleData = {
   catStatus : 'happy'
 };
 
-function createDBConnection() {
-  const connection = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    user: 'root',
-    database: 'strayspotter_database_test',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 3306
-  });
-  return connection;
-}
-
 async function selectFunction(connection, insertId) {
   const sql = 'SELECT * FROM pictures WHERE id = ?';
   const [result] = await connection.promise().query(sql, [insertId]);
   return result;
 }
 
-async function clearTestDB(connection) {
+async function clearTestDb(connection) {
   const sql = 'DELETE FROM pictures'
   const [result] = await connection.promise().query(sql);
   return result;
 }
 
-describe.only('insertDatatoDB', () => {
-  
-  const mockData = {
-    latitude : 1.31576,
-    longitude : 103.914,
-    date : '2024-01-01',
-    postcode : '123456', 
-    districtNo : '12',
-    districtName : 'TestDistrict',
-    catStatus : 'happy'
-  };
-  const emptyData = {
-    catStatus : 'happy'
-  };
+describe('insertDatatoDb', () => {
+  const emptyData = {};
 
   let connection;
   beforeAll(() => {
-    connection = createDBConnection();
+    connection = createDbConnection(true);
   });
   afterAll(async () => {
-    await clearTestDB(connection);
+    await clearTestDb(connection);
     connection.end();
   });
 
   it('should return insertID after inserting, and verify DB insert', async () => {
- 
-    const result = await insertDataToDB(connection, mockData);
+    const result = await insertDataToDb(connection, sampleData);
     const check = await selectFunction(connection, result);
 
     expect(typeof result).toBe('number');
@@ -69,81 +45,53 @@ describe.only('insertDatatoDB', () => {
   });
 
   it('should handle empty data', async () => {
-    const result = await insertDataToDB(connection, emptyData);
+    const result = await insertDataToDb(connection, emptyData);
     const check = await selectFunction(connection, result);
     expect(check[0].date_taken).toBeInstanceOf(Date);
     expect(check[0].latitude).toBe(null);
     expect(check[0].longitude).toBe(null);
-    expect(check[0].cat_status).toBe("happy");
+    expect(check[0].cat_status).toBe(null);
   });
 })
 
-describe('fetchGPSByID', () => {
-  const mockData = {
-    metadata : {
-      latitude: sampleData.latitude,
-      longitude: sampleData.longitude,
-      date: sampleData.date
-    },
-    otherdata : [
-      sampleData.cat_status,
-      {
-        postcode: sampleData.postcode,
-        districtNo: sampleData.districtNo,
-        districtName: sampleData.districtName
-      }
-    ]
-  };
-
+describe('fetchByID', () => {
   let connection;
   beforeAll(() => {
-    connection = createDBConnection();
+    connection = createDbConnection(true);
   });
   afterAll(async () => {
-    await clearTestDB(connection);
+    await clearTestDb(connection);
     connection.end();
   });
 
-  it('should return object with latitude and longitude', async () => {
-    const testID = await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
-    const result = await fetchGPSByID(connection, testID);
-    expect(result.latitude).toBe(sampleData.latitude)
-    expect(result.longitude).toBe(sampleData.longitude)
+  it('should return object with valid information', async () => {
+    const testID = await insertDataToDb(connection, sampleData);
+    const {latitude, longitude} = await fetchByID(connection, testID);
+    expect(latitude).toBe(sampleData.latitude);
+    expect(longitude).toBe(sampleData.longitude);
   })
 
   it('should throw error with invalid ID', async () => {
     const invalidID = "?"
-    await expect(fetchGPSByID(connection, invalidID)).rejects.toThrowError('No data found for the given ID');
+    await expect(fetchByID(connection, invalidID)).rejects.toThrowError('No data found for the given ID');
   })
 })
 
 describe('countPictures', () => {
-  const mockData = {
-    metadata : {
-      latitude: sampleData.latitude,
-      longitude: sampleData.longitude,
-      date: new Date()
-    },
-    otherdata : [
-      sampleData.cat_status,
-      {
-        postcode: sampleData.postcode,
-        districtNo: sampleData.districtNo,
-        districtName: sampleData.districtName
-      }
-    ]
+  let mockData = {
+    date: new Date(),
+    districtNo: 12
   };
-
   let connection;
   beforeAll(async () => {
-    connection = createDBConnection();
-    await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
-    await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
-    mockData.otherdata[1].districtNo = 11;
-    await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
+    connection = createDbConnection(true);
+    await insertDataToDb(connection, mockData);
+    await insertDataToDb(connection, mockData);
+    mockData.districtNo = 11;
+    await insertDataToDb(connection, mockData);
   });
   afterAll(async () => {
-    await clearTestDB(connection);
+    await clearTestDb(connection);
     connection.end();
   });
 
@@ -173,91 +121,76 @@ describe('countPictures', () => {
 })
 
 describe('fetchRecentPhotoID', () => {
-  const mockData = {
-    metadata : {
-      latitude: sampleData.latitude,
-      longitude: sampleData.longitude,
-      date: sampleData.date
-    },
-    otherdata : [
-      sampleData.cat_status,
-      {
-        postcode: sampleData.postcode,
-        districtNo: sampleData.districtNo,
-        districtName: sampleData.districtName
-      }
-    ]
-  };
   let connection;
+  const insertIds = [];
 
   beforeAll(async () => {
-    connection = createDBConnection();
+    connection = createDbConnection(true);
+    
     for (let i=0; i<5; i++) {
-      await insertDataToDB(connection, mockData.metadata, mockData.otherdata);
+      let insertId = await insertDataToDb(connection, sampleData);
+      insertIds.push(insertId);
     }
   })
-
   afterAll(async () => {
-    await clearTestDB(connection);
+    await clearTestDb(connection);
     connection.end();
   })
 
   it('should return 3 ids with parameter 3', async () => {
     const result = await fetchRecentPhotoID(connection, 3);
-  
     expect(result.length).toBe(3);
   })
 
   it('should return max num ids with parameter bigger than length', async () => {
     const result = await fetchRecentPhotoID(connection, 10);
-  
     expect(result.length).toBe(5);
   })
 
   it('should return 4, default number of ids with no parameter', async () => {
     const result = await fetchRecentPhotoID(connection);
-
     expect(result.length).toBe(4);
+  })
+
+  it('should skip recent photos based on the parameter', async () => {
+    const result = await fetchRecentPhotoID(connection, 2, 1);
+    expect(result[0].id).toBe(insertIds[3]);
+    expect(result[1].id).toBe(insertIds[2]);
   })
 
 })
 
-// Assume the token exists
-// Need to Mock
-describe('GPSToAddress', () => {
+describe('Reverse Geocode', () => {
   let connection;
-
-   const mockData = {
-    metadata : {
-      latitude: sampleData.latitude,
-      longitude: sampleData.longitude,
-      date: sampleData.date
-    },
-    otherdata : [
-      sampleData.cat_status,
-      {
-        postcode: sampleData.postcode,
-        districtNo: sampleData.districtNo,
-        districtName: sampleData.districtName
-      }
-    ]
-  };
-
-  beforeAll(async () => {
-    connection = createDBConnection();
+  beforeAll(() => {
+    // To fetch the token & refresh, use the actual token
+    connection = createDbConnection(false);
   })
-
-   afterAll(async () => {
-    await clearTestDB(connection);
+  afterAll(() => {
     connection.end();
   })
 
-  it('should return address', async () => {
-    console.log(mockData.latitude, mockData.longitude)
-    result = await GPSToAddress(connection, mockData.metadata.latitude, mockData.metadata.longitude);
-    console.log(result);
-    expect(1).toBe(1);
+  it('should convert GPS coordinates to the correct address', async () => {
+    result = await reverseGeocode(connection, sampleData.latitude, sampleData.longitude);
+    expect(result.districtNo).toBe(15);
+    expect(result.postcode).toBe(428074);
+    expect(result.districtName).toBe('Katong, Joo Chiat, Amber Road');
+  })
+});
+
+describe('deleteByID function', () => {
+  let connection;
+  beforeAll(() => {
+    connection = createDbConnection(true);
+  })
+  afterAll(async () => {
+    await clearTestDb(connection);
+    connection.end();
   })
 
-
+  it('should delete the record by ID and return the number of affected rows', async () => {
+    const insertedID = await insertDataToDb(connection, sampleData);
+    const result = await deleteByID(connection, insertedID);
+    expect(result).toBe(1);
+  });
 });

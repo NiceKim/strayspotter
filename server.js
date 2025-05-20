@@ -4,27 +4,22 @@
 // Express setup
 const express = require('express');
 const app = express();
-const path = require('path');
-const cors = require('cors'); // You'll need to install this
+require('dotenv').config();
+
+const DEFAULT_PORT = 3000;
+const DEFAULT_HOST = '0.0.0.0';
+const HOST = process.env.HOST || DEFAULT_HOST;
+const PORT = process.env.PORT || DEFAULT_PORT;
+const SECOND_SERVER_HOST = process.env.SECOND_HOST || "127.0.0.1";
+const SECOND_SERVER_PORT = process.env.SECOND_PORT || "3000";
 
 // Apply CORS middleware to allow all origins
+const cors = require('cors'); 
 app.use(cors({
   origin: '*', // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow all methods
   allowedHeaders: '*' // Allow all headers
 }));
-
-// Also keep API routes accessible - increase limit size for larger uploads
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-require('dotenv').config();
-const DEFAULT_PORT = 3000;
-const DEFAULT_HOST = '0.0.0.0'; // Changed to 0.0.0.0 to accept connections from any IP
-const HOST = process.env.HOST || DEFAULT_HOST;
-const PORT = process.env.PORT || DEFAULT_PORT;
-const SECOND_SERVER_HOST = process.env.SECOND_HOST || "127.0.0.1";
-const SECOND_SERVER_PORT = process.env.SECOND_PORT || "3000";
 
 // Swagger doucumetation setup
 const swaggerUi = require('swagger-ui-express');
@@ -32,79 +27,25 @@ const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// AWS S3 setup
+// To receive data from client
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const multer = require('multer');
 const storage = multer.memoryStorage();
-// Increase file size limit
 const receiveImage = multer({
   storage: storage,
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB
 }).single('image');
 
-const { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand} = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const bucket_name = "strayspotter-bucket"
-
-// Initialize S3 client for AWS - now with no credential verification
-const s3Client = new S3Client({
-  region: 'ap-southeast-1', // Region, adjust as needed
-  credentials: {
-    accessKeyId: process.env.ACCESS_KEY_ID || 'dummy-key', // Fallback to dummy key if not provided
-    secretAccessKey: process.env.SECRET_ACCESS_KEY_ID || 'dummy-secret', // Fallback to dummy secret if not provided
-  },
-  forcePathStyle: true, // Override endpoint resolution for local development
-});
-
 // Database and other services
-const db = require('./db.js');
-const exifr = require('exifr');
-const heicConvert = require('heic-convert');
-const { default: axios } = require('axios');
+const db = require('./db');
+const { processImageUpload } = require('./image_handler')
+const { axios } = require('axios');
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // UTILITY FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Converts a HEIC image buffer to a JPEG image buffer.
- *
- * @param {Buffer} inputBuffer The buffer of the HEIC image to convert.
- * @returns {Buffer} The resulting JPEG image buffer after conversion.
- */
-async function convertHeicToJpg(inputBuffer) {
-  const jpgBuffer = await heicConvert({
-      buffer: inputBuffer,
-      format: 'JPEG', // Output format
-      quality: 1, // Quality from 0 to 1
-  });
-
-  return jpgBuffer; // Return the JPG buffer
-}
-
-/**
- * Uploads data to cloud storage.
- *
- * @param {Buffer} fileData The file data (image or other content) to upload.
- * @param {object} res The response object to send the result back to the client.
- * @param {string} unique_id A unique identifier for the file being uploaded.
- * @throws {Error} Throws an error if there is an issue during the upload process.
- */
-async function uploadToCloud(fileData, res, unique_id) {
-    const params = {
-      Bucket: bucket_name,
-      Key: unique_id,
-      Body: fileData,
-    };
-    try {
-      const command = new PutObjectCommand(params);
-      await s3Client.send(command);
-      res.send(`File uploaded successfully at https://${bucket_name}.s3.amazonaws.com/${params.Key}`);
-    } catch (s3Err) {
-      console.error("S3 upload error:", s3Err);
-      // Still return success even if upload fails (for testing purposes)
-      res.send(`File processed with ID: ${unique_id}`);
-    }
-}
+const { NumbertoName } = require('./postal_data.js');
 
 /**
  * Creates a report based on the total number of pictures and the count per district for a given request type.
@@ -113,7 +54,7 @@ async function uploadToCloud(fileData, res, unique_id) {
  * @returns {Promise<string>} Resolves with the generated HTML report.
  */
 async function createReport(request_type) {
-  let connection = db.createDBConnection();
+  let connection = db.createDbConnection();
   let report = "";
 
   try {
@@ -139,7 +80,18 @@ async function createReport(request_type) {
 
 // API endpoint prefix to differentiate from React routes
 const API_PREFIX = '/api';
+const { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand} = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const bucket_name = "strayspotter-bucket";
 
+const s3Client = new S3Client({
+  region: 'ap-southeast-1',
+  credentials: {
+    accessKeyId: process.env.ACCESS_KEY_ID, 
+    secretAccessKey: process.env.SECRET_ACCESS_KEY_ID, 
+  },
+  forcePathStyle: true, // Override endpoint resolution for local development
+});
 /**
  * Retrieves a list of image keys from the cloud, sorted in descending numerical order.
  * Returns up to a specified number of image keys based on the client's query parameter.
@@ -173,64 +125,31 @@ app.get(`${API_PREFIX}/images`, async (req, res) => {
 });
 
 /**
- * Generates a pre-signed URL for accessing an image and retrieves GPS data from the database.
+ * Generates a pre-signed URL for accessing an image
  *
  * @param {string} key The key of the image in the cloud (provided as a query parameter).
- * @returns {object} A JSON object containing the pre-signed URL and GPS coordinates (latitude and longitude).
+ * @returns {object} A JSON object containing the pre-signed URL
  * @throws {Error} Throws an error if there is an issue with fetching data or generating the pre-signed URL.
  */
 app.get(`${API_PREFIX}/image-url`, async (req, res) => {
   const { key } = req.query;
-  const connection  = db.createDBConnection();
   try {
-    // Skip DB call if needed, just for temporary dev mode
-    let data_latitude = "";
-    let data_longitude = "";
-
-    try {
-      const data = await db.fetchGPSByID(connection, key.slice(1));
-      if (data) {
-        data_latitude = data.latitude;
-        data_longitude = data.longitude;
-      }
-    } catch (dbErr) {
-      console.error('DB error, continuing:', dbErr);
-    }
-
     if (!key) {
       return res.status(400).send('Key is required');
     }
-
     const params = {
       Bucket: bucket_name,
       Key: key,
       Expires: 60 * 60, // seconds, set to one hour
     };
-
-    try {
-      const url = await getSignedUrl(s3Client, new GetObjectCommand(params));
-      res.json({
-        url: url,
-        latitude: data_latitude,
-        longitude: data_longitude
-      });
-    } catch (err) {
-      // For development, return a mock URL
-      res.json({
-        url: `https://example.com/${key}`,
-        latitude: data_latitude,
-        longitude: data_longitude
-      });
-    }
+    const url = await getSignedUrl(s3Client, new GetObjectCommand(params));
+    res.json({ url: url }); 
   } catch (error) {
-    console.error('Error in image-url endpoint:', error);
+    console.error('Error during getting image-url:', error);
     res.json({
-      url: `https://example.com/${key}`,
-      latitude: "0",
-      longitude: "0"
+      url: `https://example.com/${key}`
     });
   }
-  connection.end();
 });
 
 /**
@@ -272,121 +191,26 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
  * Handles file upload, processes EXIF data, and stores image metadata in the database.
  *
  * @param {object} req.file The uploaded file object, containing the image file data.
- * @param {string} req.body.category The category representing the cat's condition (e.g., "happy", "normal", "sad").
+ * @param {string} req.body.status The category representing the cat's condition (e.g., "happy", "normal", "sad").
  * @throws {Error} Throws an error if there is an issue during file upload, EXIF data parsing, or database insertion.
  */
-// TODO : REFACTOR, and use receiveImage as a middleware ('url', receiveImage, (req,res)=>{})
-// 콜백 지옥 처리, 
-// 날짜 처리는 inserDatatoDB 안에서 처리리
-// 메타데이터 있을 때 없을 때 중복 코드 삭제 ,입력값 처리 필요 없음
-// (Null 값은 따로 처리 안해줘도 JS에서 접근하면 에러가 아니라 undefined->Null))
-app.post(`${API_PREFIX}/upload`, async (req, res) => {
-  receiveImage(req, res, async (err) => {
-    if (err) {
-      console.error("Upload error:", err);
-      return res.status(500).send(err.message);
-    }
-    if (!req.file) {
-      return res.status(400).send('No file selected!');
-    }
-
-    try {
-      const connection = db.createDBConnection();
-      // Converting heic to jpg with metadata
-      let exifData;
-      try {
-        exifData = await exifr.parse(req.file.buffer);
-      } catch (exifErr) {
-        console.error("EXIF parsing error:", exifErr);
-        // Continue without EXIF data
-      }
-      // let otherData = [];
-      // otherData.push(req.body.status || "normal");
-      let fileData;
-      // let extractedData;
-
-      const tempData = {
-        latitude : 0,
-        longitude : 0,
-        date : new Date(),
-        postcode : 'NA', 
-        districtNo : -1,
-        districtName : 'NA',
-        catStatus : req.body.status || "happy"
-      };
-      // If there are no metadata, default values for latitude and longitude are used.
-      if (!exifData) {
-        try {
-          const picture_id = await db.insertDataToDB(connection, tempData);
-          console.log("Generated picture ID:", picture_id);
-          if (req.file.mimetype == 'image/heic') {
-            fileData = await convertHeicToJpg(req.file.buffer);
-            await uploadToCloud(fileData, res, 'k' + picture_id);
-          } else if (req.file.mimetype.startsWith('image/')) {
-            fileData = req.file.buffer;
-            await uploadToCloud(fileData, res, 'k' + picture_id);
-          } else {
-            console.error("IT IS NOT AN IMAGE");
-            // Process it anyway
-            fileData = req.file.buffer;
-            await uploadToCloud(fileData, res, 'k' + picture_id);
-          }
-        } catch (dbErr) {
-          console.error("Database error:", dbErr);
-          // Generate a random ID for testing
-          const picture_id = 'temp' + Math.floor(Math.random() * 10000);
-          fileData = req.file.buffer;
-          await uploadToCloud(fileData, res, 'k' + picture_id);
-        }
-      }
-      // If there are metadata, the latitude and longitude are extracted
-      // and used to convert the GPS coordinates into an address.
-      else {
-        tempData.latitude = exifData.latitude;
-        tempData.longitude = exifData.longitude;
-        tempData.date = exifData.DateTimeOriginal || tempData.date;
-        // extractedData = {
-        //   latitude: exifData.latitude || 0,
-        //   longitude: exifData.longitude || 0,
-        //   date: exifData.DateTimeOriginal || new Date()
-        // };
-        try {
-          const address = await db.GPSToAddress(connection, tempData.latitude, tempData.longitude);
-          tempData.postcode = address.postcode;
-          tempData.districtName = address.districtName;
-          tempData.districtNo = address.districtNo;
-        } catch (gpsErr) {
-          console.error("GPS to address error:", gpsErr);
-        }
-        try {
-          const picture_id = await db.insertDataToDB(connection, tempData);
-          if (req.file.mimetype == 'image/heic') {
-            fileData = await convertHeicToJpg(req.file.buffer);
-            await uploadToCloud(fileData, res, 'k' + picture_id);
-          } else if (req.file.mimetype.startsWith('image/')) {
-            fileData = req.file.buffer;
-            await uploadToCloud(fileData, res, 'k' + picture_id);
-          } else {
-            console.error("IT IS NOT AN IMAGE");
-            // Process it anyway
-            fileData = req.file.buffer;
-            await uploadToCloud(fileData, res, 'k' + picture_id);
-          }
-        } catch (dbErr) {
-          console.error("Database error:", dbErr);
-          // Generate a random ID for testing
-          const picture_id = 'temp' + Math.floor(Math.random() * 10000);
-          fileData = req.file.buffer;
-          await uploadToCloud(fileData, res, 'k' + picture_id);
-        }
-      }
-    } catch (generalErr) {
-      console.error("General error in upload:", generalErr);
-      res.status(200).send("File processed but with errors");
-    } finally {
-      connection.end()
-    }
-  });
+app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
+  const file = req.file;
+  const status = req.body.status;
+  if (!file) {
+    return res.status(400).send('No file selected!');
+  }
+  const connection = db.createDbConnection();
+  try {
+    const result = await processImageUpload(connection,file, status);
+    console.log(`uploaded new picture ${result}`);
+    res.status(200).send("Picture sucessfully uploaded");
+  } catch (generalErr) {
+    console.error("General error in upload:", generalErr);
+    res.status(400).send("File upload failed due to errors");
+  } finally {
+    connection.end();
+  }
 });
 
 /**
@@ -413,9 +237,9 @@ app.get(`${API_PREFIX}/classification/:id`, async (req, res) => {
  * @returns {Object} the data from the db in JSON
  */
 app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
-  const connection = db.createDBConnection();
+  const connection = db.createDbConnection();
   try {
-    const data = await db.fetchAllDB(connection);
+    const data = await db.fetchAllDb(connection);
     res.json(data);
   } catch (err) {
     console.error("Error fetching DB data:", err);
@@ -439,7 +263,15 @@ app.use((err, req, res, next) => {
 ///////////////////////////////////////////////////////////////////////////////////////
 // SERVER STARTUP
 ///////////////////////////////////////////////////////////////////////////////////////
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
   console.log(`API is available at http://${HOST}:${PORT}${API_PREFIX}`);
+});
+
+process.on('SIGINT', () => {
+  console.log('Gracefully shutting down...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
