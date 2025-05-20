@@ -8,8 +8,12 @@ CREATE TABLE IF NOT EXISTS pictures (
     date_taken DATE,
     postcode INT,
     district_no INT,
-    district_name VARCHAR(20),
-    cat_status Int
+    district_name VARCHAR(50),
+    cat_status VARCHAR(10)
 );
 
-SELECT * FROM pictures;
+CREATE TABLE IF NOT EXISTS tokens(
+    token_name VARCHAR(10) PRIMARY KEY,
+    access_token TEXT,
+    expire_date INT
+);
