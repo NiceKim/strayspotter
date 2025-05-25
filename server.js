@@ -6,17 +6,15 @@ const express = require('express');
 const app = express();
 require('dotenv').config();
 
-const DEFAULT_PORT = 3000;
-const DEFAULT_HOST = '0.0.0.0';
-const HOST = process.env.HOST || DEFAULT_HOST;
-const PORT = process.env.PORT || DEFAULT_PORT;
-const SECOND_SERVER_HOST = process.env.SECOND_HOST || "127.0.0.1";
-const SECOND_SERVER_PORT = process.env.SECOND_PORT || "3000";
+const HOST = process.env.HOST;
+const PORT = process.env.PORT;
+const SECOND_SERVER_HOST = process.env.SECOND_HOST;
+const SECOND_SERVER_PORT = process.env.SECOND_PORT;
 
-// Apply CORS middleware to allow all origins
+// Apply CORS middleware to allow frontend
 const cors = require('cors'); 
 app.use(cors({
-  origin: '*', // Allow all origins
+  origin: process.env.FRONT_ORIGIN, // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow all methods
   allowedHeaders: '*' // Allow all headers
 }));
