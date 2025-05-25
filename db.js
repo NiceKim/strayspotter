@@ -143,17 +143,17 @@ async function getValidToken(connection) {
  * @returns {Object} The MySQL connection object used for interacting with the database.
  */
 function createDbConnection(test = false) {
-  let databse_name;
+  let database_name;
   if (test) {
-    databse_name = 'strayspotter_database_test';
+    database_name = 'strayspotter_database_test';
   }
   else {
-    databse_name = 'strayspotter_database';
+    database_name = 'strayspotter_database';
   }
   const connection = mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
     user: 'root',
-    database: databse_name,
+    database: database_name,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT || 3306
   });
@@ -248,27 +248,30 @@ async function reverseGeocode(connection, latitude, longitude) {
 }
 
 /**
- * Counts the number of pictures taken in a specific district within a given time period.
- * 
- * @param {Object} connection The MySQL connection object
- * @param {number} districtNo - The district number to filter the pictures
- *  If districtNo is 0, all pictures will be returned regardless of district
- * @param {"day" | "week" | "month"} timeFrame - The time range for counting pictures
- *      - "day": Counts pictures taken today
- *      - "week": Counts pictures taken in the current week
- *      - "month": Counts pictures taken in the current month
- * @returns {Promise<number>} A promise that resolves to the count of pictures matching the criteria
- * @throws {Error} Throws an error if range parameter is none of provided ranges
+ * Retrieves the count of pictures taken within the current day, week, or month,
+ * optionally filtered by district.
+ *
+ * @param {Object} connection The MySQL connection object.
+ * @param {number} districtNo The district number to filter pictures by.
+ *                          If `0`, pictures from all districts will be counted for the specified time frame.
+ * @param {"day" | "week" | "month"} timeFrame Specifies the granularity of the "current" period:
+ *      - "day": Counts pictures taken on the current calendar day.
+ *      - "week": Counts pictures taken within the current calendar week (e.g., Sunday to Saturday, depending on DB settings).
+ *      - "month": Counts pictures taken within the current calendar month.
+ * @returns {Promise<number>} A promise that resolves to the total count of pictures
+ *                            matching the district and current time frame criteria.
+ * @throws {Error} Throws an error if the `timeFrame` parameter is not one of the
+ *                 allowed values ('day', 'week', 'month').
  */
-async function countPictures(connection, districtNo, timeFrame) {
+async function getCurrentPictureCount(connection, districtNo, timeFrame) {
   let query = `SELECT COUNT(id) as count FROM pictures WHERE`;
   if (districtNo != 0) {
     query += ` district_no = ${districtNo} AND`
   }
   if (timeFrame === "day") {
-    query += ` date_taken = CURDATE()`;
+    query += ` DATE(date_taken) = CURDATE()`;
   } else if (timeFrame === "week") {
-    query += ` WEEK(date_taken) = WEEK(CURDATE()) AND YEAR(date_taken) = YEAR(CURDATE())`;
+    query += `  YEARWEEK(date_taken, 1) = YEARWEEK(CURDATE(), 1)`;
   } else if (timeFrame === "month") {
     query += ` MONTH(date_taken) = MONTH(CURDATE()) AND YEAR(date_taken) = YEAR(CURDATE())`;
   } else {
@@ -332,7 +335,7 @@ module.exports = {
   insertDataToDb,
   fetchByID,
   reverseGeocode,
-  countPictures,
+  getCurrentPictureCount,
   fetchAllDb,
   createDbConnection,
   fetchRecentPhotoID,

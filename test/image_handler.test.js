@@ -72,7 +72,7 @@ describe('processImageUpload', () => {
         jest.clearAllMocks();
     });
 
-    it('should extract metadata, insert data, upload to cloud, and return ID for picture with exifData', async () => {
+    it('should handle picture upload with EXIF data correctly', async () => {
         db.insertDataToDb.mockResolvedValue(mockID);
         db.reverseGeocode.mockResolvedValue(mockAddress);
         exifr.parse.mockResolvedValue(mockMetadata);
@@ -82,12 +82,16 @@ describe('processImageUpload', () => {
         expect(db.insertDataToDb).toHaveBeenCalledWith(connection, mockData);
         expect(db.reverseGeocode).toHaveBeenCalledWith(connection, mockMetadata.latitude, mockMetadata.longitude);
         expect(helper.uploadToCloud).toHaveBeenCalledWith(
-            expect.any(Buffer),
-            'k' + mockID
+            expect.objectContaining({
+                buffer: expect.any(Buffer),
+                mimetype: 'image/jpeg',
+                originalname: 'test.jpg',
+                uniquename: 'k' + mockID + '.jpg',
+            })
         );
     });
 
-     it('should extract metadata, insert data, upload to cloud, and return ID for picture without exifData', async () => {
+     it('should handle picture upload without EXIF data correctly', async () => {
         db.insertDataToDb.mockResolvedValue(mockID);
         db.reverseGeocode.mockResolvedValue(mockAddress);
         exifr.parse.mockResolvedValue(null);
@@ -105,8 +109,12 @@ describe('processImageUpload', () => {
         });
         expect(db.reverseGeocode).toBeCalledTimes(0);
         expect(helper.uploadToCloud).toHaveBeenCalledWith(
-            expect.any(Buffer),
-            'k' + mockID
+            expect.objectContaining({
+                buffer: expect.any(Buffer),
+                mimetype: 'image/jpeg',
+                originalname: 'test.jpg',
+                uniquename: 'k' + mockID + '.jpg',
+            })
         );
     })
 
