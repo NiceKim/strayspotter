@@ -1,6 +1,4 @@
-const { createDbConnection, insertDataToDb, fetchByID, countPictures, fetchRecentPhotoID , reverseGeocode, deleteByID} = require('../db.js');
-const mysql = require('mysql2');
-require('dotenv').config();
+const { createDbConnection, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID} = require('../db.js');
 
 const sampleData = {
   latitude : 1.31576,
@@ -77,7 +75,7 @@ describe('fetchByID', () => {
   })
 })
 
-describe('countPictures', () => {
+describe('getCurrentPictureCount', () => {
   let mockData = {
     date: new Date(),
     districtNo: 12
@@ -96,27 +94,27 @@ describe('countPictures', () => {
   });
 
   it('should return the number of pictures that is taken today', async () => {
-    expect(await countPictures(connection, 12, "day")).toBe(2);
+    expect(await getCurrentPictureCount(connection, 12, "day")).toBe(2);
   })
   
   it('should return the number of pictures that is taken this week', async () => {
-    expect(await countPictures(connection, 12, "week")).toBe(2);
+    expect(await getCurrentPictureCount(connection, 12, "week")).toBe(2);
   })
   
   it('should return the number of pictures that is taken this month', async () => {
-    expect(await countPictures(connection, 12, "month")).toBe(2);
+    expect(await getCurrentPictureCount(connection, 12, "month")).toBe(2);
   })
 
   it('should throw error for invalid range', async () => {
-     await expect(countPictures(connection, 12, "invalid")).rejects.toThrowError('Invalid range parameter given');
+     await expect(getCurrentPictureCount(connection, 12, "invalid")).rejects.toThrowError('Invalid range parameter given');
   });
 
    it('should return 0 for invalid district', async () => {
-    expect(await countPictures(connection, -1, "day")).toBe(0);
+    expect(await getCurrentPictureCount(connection, -1, "day")).toBe(0);
    });
 
     it('should return total number of pictures if district is 0', async () => {
-    expect(await countPictures(connection, 0, "day")).toBe(3);
+    expect(await getCurrentPictureCount(connection, 0, "day")).toBe(3);
   })
 })
 

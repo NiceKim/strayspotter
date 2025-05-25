@@ -43,12 +43,12 @@ export async function fetchImageUrl(key: string): Promise<{ url: string; latitud
 
 /**
  * Fetches report data based on timeframe
- * @param timeframe 'day', 'week', or 'month'
+ * @param timeFrame 'day', 'week', or 'month'
  * @returns Report data as HTML string
  */
-export async function fetchReport(timeframe: "day" | "week" | "month"): Promise<string> {
+export async function fetchReport(timeFrame: "day" | "week" | "month"): Promise<string> {
   try {
-    const response = await fetch(`${API_URL}/report?method=${timeframe}`)
+    const response = await fetch(`${API_URL}/report?timeFrame=${timeFrame}`)
     if (!response.ok) {
       throw new Error("Failed to fetch report")
     }

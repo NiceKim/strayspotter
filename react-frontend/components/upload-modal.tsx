@@ -21,7 +21,7 @@ export default function UploadModal({
   onClose: () => void
   onSuccess?: () => void
 }) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("happy")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const { toast } = useToast()
@@ -104,14 +104,14 @@ export default function UploadModal({
                     <RadioGroupItem value="happy" id="happy" className="sr-only" />
                     <Label htmlFor="happy" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 transition-all ${selectedCategory === "happy" ? "border-primary" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-green-200 transition-all ${selectedCategory === "happy" ? "border-primary" : "border-transparent"}`}
                       >
                         <Image
-                          src="/resources/green_cat2.jpeg"
+                          src="/resources/happy.png"
                           alt="Happy cat"
-                          width={80}
-                          height={80}
-                          className="h-full w-full object-cover"
+                          width={60}
+                          height={60}
+                          className="h-full w-full object-cover p-2"
                         />
                       </div>
                     </Label>
@@ -124,14 +124,14 @@ export default function UploadModal({
                     <RadioGroupItem value="normal" id="normal" className="sr-only" />
                     <Label htmlFor="normal" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 transition-all ${selectedCategory === "normal" ? "border-primary" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-yellow-200 transition-all ${selectedCategory === "normal" ? "border-primary" : "border-transparent"}`}
                       >
                         <Image
-                          src="/resources/yellow_icon.jpeg"
+                          src="/resources/worry.png"
                           alt="Normal cat"
                           width={80}
                           height={80}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover p-2"
                         />
                       </div>
                     </Label>
@@ -144,14 +144,14 @@ export default function UploadModal({
                     <RadioGroupItem value="sad" id="sad" className="sr-only" />
                     <Label htmlFor="sad" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 transition-all ${selectedCategory === "sad" ? "border-primary" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-red-200 transition-all ${selectedCategory === "sad" ? "border-primary" : "border-transparent"}`}
                       >
                         <Image
-                          src="/resources/red_cat_3.jpeg"
+                          src="/resources/cry.png"
                           alt="Sad cat"
                           width={80}
                           height={80}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover p-2"
                         />
                       </div>
                     </Label>
