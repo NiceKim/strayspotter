@@ -83,7 +83,7 @@ async function saveAccessToken(connection, token) {
 */
 async function requestOneMapToken() {
     const response = await axios.post(
-    `${process.env.ONEMAP_BASE_URL}/api/auth/post/getToken`,
+    `https://www.onemap.gov.sg/api/auth/post/getToken`,
     {
         email: process.env.ONEMAP_API_EMAIL,
         password: process.env.ONEMAP_API_PASSWORD,
@@ -151,11 +151,11 @@ function createDbConnection(test = false) {
     database_name = 'strayspotter_database';
   }
   const connection = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST,
     user: 'root',
     database: database_name,
     password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 3306
+    port: process.env.DB_PORT
   });
   return connection;
 }
