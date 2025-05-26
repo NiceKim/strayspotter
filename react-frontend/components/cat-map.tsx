@@ -1,262 +1,135 @@
 "use client"
-
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react"
-import dynamic from "next/dynamic"
-import { fetchGalleryImages, fetchImageUrl } from "@/services/api"
-import type * as Leaflet from "leaflet"
 import "leaflet/dist/leaflet.css"
+import { useEffect, useRef, useState } from "react"
+import {fetchImageUrl, fetchGalleryImages} from "@/services/api"
 
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false }
-)
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
-)
-const Marker = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Marker),
-  { ssr: false }
-)
-const Tooltip = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Tooltip),
-  { ssr: false }
-)
+const COORDINATES: [number, number] = [1.3521, 103.8198]
+const DEFAULT_ZOOM_LEVEL = 11
+const MIN_ZOOM_LEVEL = 11
+const MAX_ZOOM_LEVEL = 30
+const SOUTH_WEST_CORNER: [number, number] = [1.2, 103.6]
+const NORTH_EAST_CORNER: [number, number] = [1.46, 104.1]
+const MARK_ICON_LOCATION = "/resources/icon.png"
 
-type CatMarker = {
+interface ImageData {
   id: string
-  latitude: number
-  longitude: number
-  imageUrl: string
+  url: string
 }
 
-type CatMapProps = {
-  height?: string | number
-  width?: string | number
-  maxWidth?: string
-  initialZoom?: number
-  onMarkerClick?: (markerId: string) => void
-  center?: [number, number]
-  minZoom?: number
-  maxZoom?: number
-  maxBounds?: [[number, number], [number, number]]
-  iconUrl?: string
-  iconSize?: [number, number]
-  className?: string
-  limit?: number
-  marginTop?: string | number
-  marginBottom?: string | number
-}
-
-const CatMap = forwardRef<
-  { loadMarkers: () => Promise<void> },
-  CatMapProps
->(({
-  height = "500px",
-  width = "100%",
-  maxWidth = "70%",
-  initialZoom = 11,
-  onMarkerClick,
-  center = [1.3521, 103.8198], // Default: Singapore
-  minZoom = 11,
-  maxZoom = 30,
-  maxBounds = [[1.2, 103.6], [1.46, 104.1]],
-  iconUrl = "/resources/icon.png",
-  iconSize = [45, 50],
-  className = "mx-auto overflow-hidden rounded-lg border-4 border-gray-800",
-  limit = 20,
-  marginTop = 0,
-  marginBottom = 0
-}, ref) => {
-  const [isMapLoaded, setIsMapLoaded] = useState(false)
-  const [markers, setMarkers] = useState<CatMarker[]>([])
+export default function CatMap() {
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<any>(null)
+  const [currentTooltip, setCurrentTooltip] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const leafletRef = useRef<typeof Leaflet>(null)
-  const mapRef = useRef(null)
 
-  // Add a useEffect to adjust Leaflet's default z-index values
   useEffect(() => {
-    if (typeof window !== 'undefined' && document) {
-      // css to prevent map being higher z than navbar
-      const style = document.createElement('style')
-      style.innerHTML = `
-        .leaflet-pane {
-          z-index: 1 !important;
-        }
-        .leaflet-tile-pane {
-          z-index: 2 !important;
-        }
-        .leaflet-overlay-pane {
-          z-index: 3 !important;
-        }
-        .leaflet-shadow-pane {
-          z-index: 4 !important;
-        }
-        .leaflet-marker-pane {
-          z-index: 5 !important;
-        }
-        .leaflet-tooltip-pane {
-          z-index: 6 !important;
-        }
-        .leaflet-popup-pane {
-          z-index: 7 !important;
-        }
-        .leaflet-control {
-          z-index: 8 !important;
-        }
-        .leaflet-top,
-        .leaflet-bottom {
-          z-index: 9 !important;
-        }
-      `
-      document.head.appendChild(style)
+    const initializeMap = async () => {
+      try {
+        // Dynamically import Leaflet
+        const L = await import("leaflet")
+        // Initialize the map
+        const map = L.map(mapRef.current!).setView(COORDINATES, DEFAULT_ZOOM_LEVEL)
+        mapInstanceRef.current = map
 
-      return () => {
-        document.head.removeChild(style)
+        // Add OpenStreetMap tile layer
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: MAX_ZOOM_LEVEL,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        }).addTo(map)
+
+      // Set the bounds for Singapore
+        const bounds: any = [SOUTH_WEST_CORNER, NORTH_EAST_CORNER]
+        map.setMaxBounds(bounds)
+        map.on("drag", () => {
+          map.panInsideBounds(bounds)
+        })
+
+      // Restrict zoom levels
+        map.setMaxZoom(MAX_ZOOM_LEVEL)
+        map.setMinZoom(MIN_ZOOM_LEVEL)
+
+        // Load images
+        await loadImages(map, L)
+        console.log("map ready")
+        setIsLoading(false)
+      } catch (error) {
+        console.error("Failed to initialize map:", error)
+        setIsLoading(false)
+      }
+    }
+
+    const raf = requestAnimationFrame(() => {
+    if (mapRef.current && !mapInstanceRef.current) {
+      initializeMap()
+    } else {
+      console.error("mapRef not ready")
+    }
+  })
+
+    // Cleanup function
+    return () => {
+      cancelAnimationFrame(raf)
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove()
+        mapInstanceRef.current = null
       }
     }
   }, [])
 
-  useEffect(() => {
-    const loadLeaflet = async () => {
-      const L = await import("leaflet")
-      leafletRef.current = L
-      setIsMapLoaded(true)
-    }
+  const loadImages = async (map: any, L: any) => {
+      const imageKeys = await fetchGalleryImages(10)
+      if (!imageKeys) {
+        return
+      }
+      for (const key of imageKeys) {
+        try {
+          const data = await fetchImageUrl(key)
+          // Using hardcoded coordinates as in original code
+          const latitude = 1.31526
+          const longitude = 103.914
 
-    if (typeof window !== "undefined") {
-      loadLeaflet()
-    }
-  }, [])
+          // Uncomment and modify these lines if you have GPS data endpoint
+          // const gpsData = await fetchGPSByID(data.id)
+          // const latitude = gpsData[0].latitude
+          // const longitude = gpsData[0].longitude
 
-  const loadMarkers = async () => {
-    setIsLoading(true)
-    try {
-      const imageKeys = await fetchGalleryImages(limit)
-
-      const markerData = await Promise.all(
-        imageKeys.map(async (key) => {
-          const imageData = await fetchImageUrl(key)
-
-          const latitude = imageData.latitude || center[0] + (Math.random() - 0.5) * 0.05
-          const longitude = imageData.longitude || center[1] + (Math.random() - 0.5) * 0.05
-
-          return {
-            id: key,
-            latitude,
-            longitude,
-            imageUrl: imageData.url,
+          if (isNaN(latitude) || isNaN(longitude)) {
+            console.error("Invalid latitude or longitude:", latitude, longitude)
+            continue 
           }
-        })
-      )
 
-      setMarkers(markerData)
-    } catch (error) {
-      console.error("Error loading map markers:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (isMapLoaded) {
-      const timer = setTimeout(() => {
-        loadMarkers()
-      }, 500)
-
-      return () => clearTimeout(timer)
-    }
-  }, [isMapLoaded])
-
-  useImperativeHandle(ref, () => ({
-    loadMarkers
-  }))
-
-  const handleMarkerClick = (markerId: string) => {
-    if (onMarkerClick) onMarkerClick(markerId)
-  }
-
-  if (!isMapLoaded || !leafletRef.current) {
-    return (
-      <div
-        style={{ height, width, maxWidth, marginTop, marginBottom }}
-        className={className + " flex items-center justify-center"}
-      >
-        <div>Loading map...</div>
-      </div>
-    )
+          const customIcon = L.icon({
+            iconUrl: MARK_ICON_LOCATION,
+            iconSize: [45, 50],
+          })
+          const marker = L.marker([latitude, longitude], { icon: customIcon }).addTo(map)
+          const tooltipContent = `<img src="${data.url}" alt="Cat" class="tooltip-image" style="max-width: 200px; max-height: 150px; object-fit: cover;"/>`
+          marker.bindTooltip(tooltipContent, { permanent: false, sticky: true })
+          marker.on("mouseover", () => {
+            if (currentTooltip) {
+              currentTooltip.closeTooltip()
+            }
+            marker.openTooltip()
+            setCurrentTooltip(marker)
+          })
+          marker.on("mouseout", () => {
+            marker.closeTooltip()
+            setCurrentTooltip(null)
+          })
+        } catch (error) {
+          console.error("Failed to process image key:", key, error)
+        }
+      }
   }
 
   return (
-    <div
-      className={className}
-      style={{
-        height,
-        width,
-        maxWidth,
-        marginTop,
-        marginBottom,
-        position: "relative",
-        zIndex: 10
-      }}
-    >
-      <MapContainer
-        center={center}
-        zoom={initialZoom}
-        style={{ height: "100%", width: "100%" }}
-        maxBounds={maxBounds}
-        minZoom={minZoom}
-        maxZoom={maxZoom}
-        ref={mapRef}
-        whenReady={() => {
-          console.log("Map is ready")
-        }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-
-        {isLoading ? (
-          <div className="absolute left-1/2 top-1/2 z-[40] -translate-x-1/2 -translate-y-1/2 bg-white p-2 text-center">
-            Loading markers...
-          </div>
-        ) : (
-          markers.map((marker) => {
-            const L = leafletRef.current!
-            const customIcon = new L.Icon({
-              iconUrl: iconUrl,
-              iconSize: iconSize,
-              iconAnchor: [iconSize[0] / 2, iconSize[1]],
-              popupAnchor: [0, -iconSize[1]]
-            })
-
-            return (
-              <Marker
-                key={marker.id}
-                position={[marker.latitude, marker.longitude]}
-                icon={customIcon}
-                eventHandlers={{
-                  click: () => handleMarkerClick(marker.id),
-                }}
-              >
-                <Tooltip permanent={false} sticky={true}>
-                  <img
-                    src={marker.imageUrl || "/placeholder.svg"}
-                    alt="Cat"
-                    className="h-auto w-[100px]"
-                    crossOrigin="anonymous"
-                  />
-                </Tooltip>
-              </Marker>
-            )
-          })
-        )}
-      </MapContainer>
+    <div className="w-full h-full relative">
+      <div ref={mapRef} className="w-full h-[600px] rounded-lg" />
+      {isLoading && (
+        <div className="absolute top-0 left-0 w-full h-[600px] bg-gray-200 rounded-lg flex items-center justify-center z-10">
+          <div className="text-gray-600">Loading map...</div>
+        </div>
+      )}
     </div>
   )
-})
-
-CatMap.displayName = "CatMap"
-
-export default CatMap
+}
