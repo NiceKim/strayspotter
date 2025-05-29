@@ -1,4 +1,5 @@
-const { createDbConnection, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID} = require('../db.js');
+const { createDbConnection, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID, fetchGPSByID} = require('../db.js');
+const { CustomError } = require('../errors/CustomError')
 
 const sampleData = {
   latitude : 1.31576,
@@ -124,7 +125,6 @@ describe('fetchRecentPhotoID', () => {
 
   beforeAll(async () => {
     connection = createDbConnection(true);
-    
     for (let i=0; i<5; i++) {
       let insertId = await insertDataToDb(connection, sampleData);
       insertIds.push(insertId);
@@ -161,7 +161,6 @@ describe('fetchRecentPhotoID', () => {
 describe('Reverse Geocode', () => {
   let connection;
   beforeAll(() => {
-    // To fetch the token & refresh, use the actual token
     connection = createDbConnection(false);
   })
   afterAll(() => {
@@ -192,3 +191,36 @@ describe('deleteByID function', () => {
     expect(result).toBe(1);
   });
 });
+
+describe.only('fetchGPSByID',  () => {
+  let connection;
+
+  beforeAll(() => {
+    connection = createDbConnection(true);
+  })
+  afterAll(async () => {
+    await clearTestDb(connection);
+    connection.end();
+  })
+
+  it('should throw error if id is missing', async () => {
+    await expect(fetchGPSByID(connection, null)).rejects.toThrow(CustomError)
+    await expect(fetchGPSByID(connection, undefined)).rejects.toThrow("ID parameter missing")
+  })
+  it('should throw error if id is not a number or numeric string', async () => {
+    await expect(fetchGPSByID(connection, 'abc')).rejects.toThrow("ID must be a number")
+    await expect(fetchGPSByID(connection, {})).rejects.toThrow("ID must be a number")
+  })
+  it('should throw error if no record found', async () => {
+    await expect(fetchGPSByID(connection, -1)).rejects.toThrow("Invalid ID")
+  })
+  it('should return gps data when record found', async () => {
+    const id = await insertDataToDb(connection, sampleData);
+    const result = await fetchGPSByID(connection, id);
+    expect(result).toEqual({
+      latitude: sampleData.latitude,
+      longitude: sampleData.longitude
+    });
+  })
+
+})

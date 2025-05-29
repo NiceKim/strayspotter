@@ -91,9 +91,25 @@ export function extractStrayCount(reportText: string): number {
   // Extract all numbers from the report text
   const numbers = reportText.match(/\d+/g)
   if (!numbers) return 0
-
-  // For simplicity, we'll just return the first number found
-  // In a real app, you might want to parse the text more carefully
   return Number.parseInt(numbers[0], 10)
 }
 
+/**
+
+* Fetches GPS data by ID
+
+* @param id Numeric ID
+* @returns Object containing latitude and longitude
+*/
+export async function fetchGPSByID(id: String): Promise<{ latitude?: number; longitude?: number }> {
+  try {
+    const response = await fetch(`${API_URL}/gps/${id}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch GPS data");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching GPS data:", error)
+    return { latitude: undefined, longitude: undefined }
+  }
+}

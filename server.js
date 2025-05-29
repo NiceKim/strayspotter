@@ -39,6 +39,7 @@ const receiveImage = multer({
 const db = require('./db');
 const { processImageUpload } = require('./image_handler')
 const { axios } = require('axios');
+const { CustomError } = require('./errors/CustomError')
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // UTILITY FUNCTIONS
@@ -223,10 +224,31 @@ app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error("Error fetching DB data:", err);
-    res.json([
-      { id: 1, status: "happy", location: "Downtown", latitude: 1.2345, longitude: 103.4567 },
-      { id: 2, status: "normal", location: "Suburb", latitude: 1.3456, longitude: 103.5678 }
-    ]);
+    res.status(500).json({ error: "Failed to fetch GPS data" });
+  } finally {
+    connection.end();
+  }
+});
+
+/**
+ * Retrieves GPS coordinates (latitude and longitude) for a given ID from the database
+ * and returns them as a JSON response.
+ * 
+ * @param {Number} req.params.id - expects req.params.id as the ID of picture.
+ * 
+ * @returns {Object} the latitude and longitude data of the requested picture
+ * 
+ * @throws {CustomError} Throws a custom error incase of invalid parameter
+ * @throws {Error} Throws a generic error, responds with status 500 and the error message.
+ */
+app.get(`${API_PREFIX}/gps/:id`, async (req, res) => {
+  const connection = db.createDbConnection();
+  try {
+    const {latitude, longitude} = await db.fetchGPSByID(connection, req.params.id);
+    res.json({latitude, longitude});
+  } catch (err) {
+    const status = err instanceof CustomError ? err.statusCode : 500
+    res.status(status).json({ error: err.message })
   } finally {
     connection.end();
   }

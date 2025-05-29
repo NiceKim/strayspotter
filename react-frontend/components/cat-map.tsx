@@ -1,7 +1,7 @@
 "use client"
 import "leaflet/dist/leaflet.css"
 import { useEffect, useRef, useState } from "react"
-import {fetchImageUrl, fetchGalleryImages} from "@/services/api"
+import {fetchImageUrl, fetchGalleryImages, fetchGPSByID} from "@/services/api"
 
 const COORDINATES: [number, number] = [1.3521, 103.8198]
 const DEFAULT_ZOOM_LEVEL = 11
@@ -85,15 +85,16 @@ export default function CatMap() {
         try {
           const data = await fetchImageUrl(key)
           // Using hardcoded coordinates as in original code
-          const latitude = 1.31526
-          const longitude = 103.914
+          // const latitude = 1.31526
+          // const longitude = 103.914
 
           // Uncomment and modify these lines if you have GPS data endpoint
-          // const gpsData = await fetchGPSByID(data.id)
-          // const latitude = gpsData[0].latitude
-          // const longitude = gpsData[0].longitude
+          const numericPart = key.replace(/\D/g, "");
+          const gpsData = await fetchGPSByID(numericPart)
+          const latitude = gpsData.latitude
+          const longitude = gpsData.longitude
 
-          if (isNaN(latitude) || isNaN(longitude)) {
+          if (!latitude || !longitude) {
             console.error("Invalid latitude or longitude:", latitude, longitude)
             continue 
           }
