@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
 import { fetchGalleryImages, fetchImageUrl, fetchReport, extractStrayCount } from "@/services/api"
-import CatMap from "@/components/cat-map";
+import dynamic from "next/dynamic"
+
+const CatMap = dynamic(() => import("@/components/cat-map"), {ssr: false})
 
 export default function Home() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -110,7 +112,7 @@ export default function Home() {
 
       {/* Map Section */}
       <div id="map">
-         <CatMap marginBottom={"50px"} marginTop={"50px"}/>
+         <CatMap />
       </div>
 
       {/* Gallery Section */}

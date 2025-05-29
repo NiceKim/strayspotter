@@ -10,9 +10,10 @@ const mysql = require('mysql2');
 const axios = require('axios');
 const { postalData } = require('./postal_data.js');
 require('dotenv').config();
+const { CustomError } = require('./errors/CustomError')
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// Ineternal Function
+// Internal Function
 ///////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -310,6 +311,35 @@ async function deleteByID(connection, id) {
   return result.affectedRows;
 }
 
+/**
+ * Fetches GPS coordinates (latitude and longitude) from the database for a given ID.
+ * 
+ * @param {object} connection - The database connection object with promise support.
+ * @param {number} id - The ID to look up in the database.
+ * 
+ * @returns {Promise<{latitude: number, longitude: number}>} - Resolves with the GPS data object.
+ * 
+ * @throws {CustomError} Throws a CustomError with status 400 if ID is missing or not a number.
+ * @throws {CustomError} Throws a CustomError with status 404 if no record found for the given ID.
+ */
+async function fetchGPSByID(connection, id) {
+  if (!id) {
+    throw new CustomError("ID parameter missing", 400)
+  }
+  if (typeof id !== "number" && !/^\d+$/.test(id)) {
+    throw new CustomError("ID must be a number", 400);
+  }
+  const query = `SELECT latitude, longitude FROM pictures WHERE id = ?`;
+  const [result] = await connection.promise().query(
+    query,
+    [id]
+  );
+  if (result.length === 0) {
+    throw new CustomError("Invalid ID", 404)
+  }
+  return result[0];
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Unused Function
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -339,5 +369,6 @@ module.exports = {
   fetchAllDb,
   createDbConnection,
   fetchRecentPhotoID,
-  deleteByID
+  deleteByID,
+  fetchGPSByID
 };
