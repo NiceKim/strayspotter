@@ -29,6 +29,7 @@ We follow the **Git Flow** model:
 - `development`: Integration branch for features  
 - `feature/<feature-name>`: Feature development branch  
 - `hotfix/<issue-name>`: Urgent fixes  
+- `refactor/<topic>`: Large-scale refactoring (e.g. structure change, logic reorganization)
 
 **Example:**
 git checkout -b feature/user-auth

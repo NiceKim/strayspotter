@@ -1,23 +1,20 @@
 services:
   # Node.js backend service
   app:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     depends_on:
       - db
+    env_file:
+      - backend/.env
     environment:
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_PASSWORD=${DB_PASSWORD}
-      - ACCESS_KEY_ID=${ACCESS_KEY_ID}
-      - SECRET_ACCESS_KEY_ID=${SECRET_ACCESS_KEY_ID}
-      - HOST=${HOST}
-      - PORT=${PORT}
-      - SECOND_HOST=${SECOND_HOST}
-      - SECOND_PORT=${SECOND_PORT}
     volumes:
-      - ./:/app
+      - ./backend:/app
       - /app/node_modules
     networks:
       - app-network
@@ -26,12 +23,12 @@ services:
   # Next.js frontend service
   frontend:
     build:
-      context: ./react-frontend
+      context: ./frontend
       dockerfile: Dockerfile
     ports:
       - "3001:3001"
     volumes:
-      - ./react-frontend:/app
+      - ./frontend:/app
       - /app/node_modules
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:3000/api
@@ -46,12 +43,13 @@ services:
     image: mysql:8.4
     ports:
       - "3307:3306"
+    env_file:
+      - backend/.env
     environment:
-      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=strayspotter_database
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app-network
     restart: unless-stopped
