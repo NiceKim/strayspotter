@@ -84,20 +84,11 @@ export default function CatMap() {
       for (const key of imageKeys) {
         try {
           const data = await fetchImageUrl(key)
-          // Using hardcoded coordinates as in original code
-          // const latitude = 1.31526
-          // const longitude = 103.914
-
-          // Uncomment and modify these lines if you have GPS data endpoint
           const numericPart = key.replace(/\D/g, "");
           const gpsData = await fetchGPSByID(numericPart)
           const latitude = gpsData.latitude
           const longitude = gpsData.longitude
-
-          if (!latitude || !longitude) {
-            console.error("Invalid latitude or longitude:", latitude, longitude)
-            continue 
-          }
+          if (!latitude || !longitude) { continue }
 
           const customIcon = L.icon({
             iconUrl: MARK_ICON_LOCATION,

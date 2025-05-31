@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
+import FeaturesSection from "@/components/features/feature-section"
 import { fetchGalleryImages, fetchImageUrl, fetchReport, extractStrayCount } from "@/services/api"
 import dynamic from "next/dynamic"
 
@@ -65,55 +66,71 @@ export default function Home() {
       <UploadModal isOpen={isUploadModalOpen} onClose={closeUploadModal} />
 
       {/* Hero Section */}
-      <header id="home" className="flex min-h-screen items-center justify-center px-4 py-16 md:px-8">
+      <header
+        id="home"
+        className="flex min-h-screen items-center justify-center px-4 py-16 md:px-8 bg-gradient-to-b from-cat-beige to-white"
+      >
         <div className="container flex flex-col items-center justify-between gap-8 md:flex-row">
-          <div className="max-w-2xl space-y-6 text-center md:text-left">
-            <h1 className="hero-title text-4xl md:text-6xl lg:text-7xl">Share your love for neighborhood cats!</h1>
-
-            <p className="rounded-3xl bg-[#506266]/40 p-6 text-lg text-white shadow-lg md:text-xl">
-              Stray Spotter is a platform for cat lovers to share photos of neighborhood cats with fellow enthusiasts!
-              By gathering data from these shared images, the platform provides insights into the status of stray cats,
-              helping to support them and promote harmony between cats and their communities.
+          <div className="max-w-2xl space-y-8 text-center md:text-left">
+            <h1 className="hero-title text-4xl md:text-6xl lg:text-7xl bg-gradient-to-r from-cat-brown to-cat-orange bg-clip-text text-transparent pb-2">
+              Share your love for neighborhood cats!
+            </h1>
+            
+            <p className="rounded-3xl bg-cat-brown/40 p-8 text-lg text-white shadow-lg md:text-xl backdrop-blur-sm">
+              Spot, share, and support stray cats together. <br/>
+              Join a community using photo-sharing to understand and care for neighborhood strays.
             </p>
 
-            <div className="flex justify-center md:justify-start">
+            <div className="flex justify-center md:justify-start space-x-4">
               <Button
                 onClick={openUploadModal}
-                className="h-12 rounded-xl bg-primary px-8 text-xl font-bold text-white hover:bg-primary/90"
+                className="h-12 rounded-xl bg-primary px-8 text-xl font-bold text-white hover:bg-primary/90 hover:scale-105 transition-all"
               >
                 Share Pictures
+              </Button>
+              <Button
+                variant="outline"
+                className="h-12 rounded-xl px-8 text-xl font-bold border-cat-brown text-cat-brown hover:text-[#5C4033] hover:bg-cat-brown/20 hover:scale-105 transition-all"
+                onClick={() => (window.location.href = "/gallery")}
+              >
+                View Gallery
               </Button>
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative isolate">
+            <div
+              className="absolute -inset-10 bg-gradient-to-r from-cat-orange to-primary opacity-35 blur-lg rounded-full"
+              style={{ zIndex: -1 }}
+            />
             <div
               onMouseEnter={() => setShowSpeechBubble(true)}
               onMouseLeave={() => setShowSpeechBubble(false)}
+              style={{ cursor: 'pointer' }}
               className="transition-transform duration-300 hover:rotate-[25deg]"
             >
               <Image
                 src="/resources/cathead2.png"
                 alt="Interactive Cat"
-                width={400}
-                height={400}
+                width={600}
+                height={600}
                 className="transition-all duration-300 hover:brightness-110"
               />
             </div>
-
             {showSpeechBubble && (
-              <div className="absolute left-5 top-[-50px] rounded-lg border-2 border-black bg-white p-3">
-                Meow! Feed me!
+              <div className="absolute left-10 top-[-10px] rounded-lg border-2 border-cat-orange bg-white p-3 shadow-lg">
+                <p className="text-cat-brown font-medium">Meow! Feed me!</p>
+                <div className="absolute bottom-[-8px] left-6 h-0 w-0 border-l-8 border-r-8 border-t-8 border-transparent border-t-white"></div>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      {/* Map Section */}
-      <div id="map">
-         <CatMap />
-      </div>
+       {/* Features Section */}
+      <FeaturesSection onUploadClick={openUploadModal} />
+
+    
 
       {/* Gallery Section */}
       <section id="gallery" className="bg-[#506266] py-12 text-center md:py-16">
@@ -157,72 +174,10 @@ export default function Home() {
       </section>
 
 
-      {/* Team Section
-      <section id="founders" className="bg-[#042940] py-12 text-center md:py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="section-title mb-12 text-4xl text-white md:text-5xl lg:text-6xl">Our Team</h2>
-
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                name: "Min Thiha Khine (Alex)",
-                image: "/resources/alex.jpg",
-                role: "Frontend Developer",
-                bio: "JCU Bachelor of Information Technology",
-                skills: [
-                  "Client-sided web development",
-                  "Developed Frontend through HTML,CSS, JS",
-                  "Optimized visuals and user interactions",
-                ],
-              },
-              {
-                name: "Jowoon Kim (John)",
-                image: "/resources/jowoon.jpg",
-                role: "Project Manager & Backend Developer",
-                bio: "JCU Master of information technology",
-                skills: ["Team management", "Database development", "Data report handling", "Data tracking"],
-              },
-              {
-                name: "Kaung Myat Kyaw (Kelvin)",
-                image: "/resources/kelvin.jpg",
-                role: "Server & Cloud API Developer",
-                bio: "JCU Bachelor of Information Technology",
-                skills: [
-                  "Node.js & express.js web server",
-                  "API & Data handling with both client-side web & database",
-                  "Map marking using metadata",
-                ],
-              },
-            ].map((member, index) => (
-              <div
-                key={index}
-                className="rounded-3xl bg-white p-6 text-left shadow-lg transition-all duration-300 hover:translate-y-[-10px] hover:shadow-[0_6px_10em_rgba(131,255,179,0.15)]"
-              >
-                <div className="flex flex-col items-center md:items-start">
-                  <Image
-                    src={member.image || "/placeholder.svg"}
-                    alt={member.name}
-                    width={150}
-                    height={150}
-                    className="mb-4 rounded-full"
-                  />
-
-                  <h3 className="text-2xl font-bold text-gray-800">{member.name}</h3>
-                  <p className="text-gray-600">{member.role}</p>
-                  <p className="my-2 text-gray-600">{member.bio}</p>
-
-                  <ul className="ml-5 list-disc text-gray-600">
-                    {member.skills.map((skill, skillIndex) => (
-                      <li key={skillIndex}>{skill}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      */}
+      {/* Map Section */}
+        <div id="map">
+         <CatMap />
+      </div>
 
       {/* Report Section */}
       <section className="py-12 md:py-16">
