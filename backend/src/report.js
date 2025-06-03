@@ -1,59 +1,5 @@
-const { createDbConnection } = require('../src/db')
-const { NumbertoName } = require('../postal_data.js');
-
-async function getDailyPictureCount(connection, {startDate, endDate, statusFilter = 'all'}) {
-  if (!startDate || !endDate) {
-    throw new Error('Missing required parameter: startDate and endDate');
-  }
-
-  let query = `
-    SELECT
-      DATE_FORMAT(date_taken, '%Y-%m-%d') AS date_taken,
-      district_no,
-      COUNT(*) AS record_count
-    FROM pictures
-    WHERE date_taken BETWEEN ? AND ?
-  `;
-  const params = [startDate, endDate];
-  if (statusFilter !== 'all') {
-    query += ` AND cat_status = ?`;
-    params.push(statusFilter);
-  }
-  query += `
-    GROUP BY date_taken, district_no
-    ORDER BY date_taken, district_no;
-  `;
-
-  const [result] = await connection.promise().query(query, params);
-  return result;
-}
-
-async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'}) {
-  if (!month) {
-    throw new Error('Missing required parameter: month');
-  }
-
-  const params = month.split('-').map(Number);
-  let query = `
-    SELECT
-      CONCAT(YEAR(date_taken), '-W', LPAD(WEEK(date_taken, 1), 2, '0')) AS year_week,
-      district_no, 
-      COUNT(*) AS record_count
-    FROM pictures
-    WHERE YEAR(date_taken) = ? AND MONTH(date_taken) = ?
-  `;
-  if (statusFilter !== 'all') {
-    query += ` AND cat_status = ?`;
-    params.push(statusFilter);
-  }
-  query += `
-    GROUP BY year_week, district_no
-    ORDER BY year_week, district_no;
-  `;
-
-  const [result] = await connection.promise().query(query, params);
-  return result;
-}
+const { NumbertoName } = require('./postal_data');
+const ExcelJS = require('exceljs');
 
 
 /**
@@ -106,7 +52,7 @@ async function createReport(connection, reportType, options) {
   };
 }
 
-const ExcelJS = require('exceljs');
+
 /**
  * Create Excel report file from daily report data using exceljs
  * @param {Object} reportData
@@ -167,12 +113,3 @@ async function createExcelReport(reportData, filePath) {
   await workbook.xlsx.writeFile(filePath);
   console.log(`✅ Excel report saved to ${filePath}`);
 }
-
-(async () => {
-  const connection = createDbConnection(true);
-  const result = await createReport(connection, 'monthly', {month: '2025-05'});
-  // const result = await createReport(connection, 'daily', {startDate: '2025-05-20', endDate: '2025-05-22'});
-  await createExcelReport(result, 'report.xlsx');
-  connection.end();
-})();
-

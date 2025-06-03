@@ -263,22 +263,80 @@ async function reverseGeocode(connection, latitude, longitude) {
  * @throws {Error} Throws an error if the `timeFrame` parameter is not one of the
  *                 allowed values ('day', 'week', 'month').
  */
-async function getCurrentPictureCount(connection, districtNo, timeFrame) {
-  let query = `SELECT COUNT(id) as count FROM pictures WHERE`;
+async function getCurrentPictureCount(connection, districtNo) {
+  let query = `
+    SELECT 
+      SUM(CASE WHEN DATE(date_taken) = CURDATE() THEN 1 ELSE 0 END) as day_count,
+      SUM(CASE WHEN YEARWEEK(date_taken, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END) as week_count,
+      SUM(CASE WHEN MONTH(date_taken) = MONTH(CURDATE()) AND YEAR(date_taken) = YEAR(CURDATE()) THEN 1 ELSE 0 END) as month_count
+    FROM pictures
+  `;
+  
   if (districtNo != 0) {
-    query += ` district_no = ${districtNo} AND`
+    query += ` WHERE district_no = ${districtNo}`;
   }
-  if (timeFrame === "day") {
-    query += ` DATE(date_taken) = CURDATE()`;
-  } else if (timeFrame === "week") {
-    query += `  YEARWEEK(date_taken, 1) = YEARWEEK(CURDATE(), 1)`;
-  } else if (timeFrame === "month") {
-    query += ` MONTH(date_taken) = MONTH(CURDATE()) AND YEAR(date_taken) = YEAR(CURDATE())`;
-  } else {
-    throw new Error('Invalid range parameter given');
-  }
+
   const [result] = await connection.promise().query(query);
-  return result[0].count;
+  return {
+    day: Number(result[0].day_count || 0),
+    week: Number(result[0].week_count || 0),
+    month: Number(result[0].month_count || 0)
+  };
+}
+
+
+async function getDailyPictureCount(connection, {startDate, endDate, statusFilter = 'all'}) {
+  if (!startDate || !endDate) {
+    throw new Error('Missing required parameter: startDate and endDate');
+  }
+
+  let query = `
+    SELECT
+      DATE_FORMAT(date_taken, '%Y-%m-%d') AS date_taken,
+      district_no,
+      COUNT(*) AS record_count
+    FROM pictures
+    WHERE date_taken BETWEEN ? AND ?
+  `;
+  const params = [startDate, endDate];
+  if (statusFilter !== 'all') {
+    query += ` AND cat_status = ?`;
+    params.push(statusFilter);
+  }
+  query += `
+    GROUP BY date_taken, district_no
+    ORDER BY date_taken, district_no;
+  `;
+
+  const [result] = await connection.promise().query(query, params);
+  return result;
+}
+
+async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'}) {
+  if (!month) {
+    throw new Error('Missing required parameter: month');
+  }
+
+  const params = month.split('-').map(Number);
+  let query = `
+    SELECT
+      CONCAT(YEAR(date_taken), '-W', LPAD(WEEK(date_taken, 1), 2, '0')) AS year_week,
+      district_no, 
+      COUNT(*) AS record_count
+    FROM pictures
+    WHERE YEAR(date_taken) = ? AND MONTH(date_taken) = ?
+  `;
+  if (statusFilter !== 'all') {
+    query += ` AND cat_status = ?`;
+    params.push(statusFilter);
+  }
+  query += `
+    GROUP BY year_week, district_no
+    ORDER BY year_week, district_no;
+  `;
+
+  const [result] = await connection.promise().query(query, params);
+  return result;
 }
 
 /**
@@ -365,6 +423,8 @@ module.exports = {
   fetchByID,
   reverseGeocode,
   getCurrentPictureCount,
+  getDailyPictureCount,
+  getMonthlyPictureCount,
   fetchAllDb,
   createDbConnection,
   fetchRecentPhotoID,

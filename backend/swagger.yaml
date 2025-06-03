@@ -69,28 +69,71 @@ paths:
           description: Internal server error if fetching data or generating URL fails.
   /api/report:
     get:
-      summary: Generates a report based on the time frame method.
-      description: Generates a report based on the specified time frame ('day', 'week', 'month').
+      summary: Generates a report based on the provided parameters
+      description: |
+        Generates a report based on the specified time frame ('daily' or 'monthly') and optional status filter.
+        For daily reports, startDate and endDate are required.
+        For monthly reports, month parameter is required in YYYY-MM format.
       parameters:
         - in: query
-          name: method
+          name: timeFrame
           required: true
           schema:
             type: string
-            enum: [day, week, month]
-          description: The time frame for the report.
+            enum: [daily, monthly]
+          description: The type of report to generate
+        - in: query
+          name: statusFilter
+          required: false
+          schema:
+            type: string
+            enum: [happy, normal, sad]
+          description: Optional filter for cat status
+        - in: query
+          name: startDate
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-03-01"
+          description: Required for daily reports - Start date in YYYY-MM-DD format
+        - in: query
+          name: endDate
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-03-31"
+          description: Required for daily reports - End date in YYYY-MM-DD format
+        - in: query
+          name: month
+          required: false
+          schema:
+            type: string
+            example: "2024-03"
+          description: Required for monthly reports - Month in YYYY-MM format
       responses:
         '200':
-          description: The report data generated based on the specified time frame.
+          description: The report data containing records and totals
           content:
             application/json:
               schema:
                 type: object
-                description: The generated report data.
+                description: The generated report data
         '400':
-          description: Bad Request. Missing or invalid 'method' query parameter.
+          description: Bad Request - Missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Error message explaining the validation failure
         '500':
-          description: Internal server error if report generation or database interaction fails.
+          description: Internal server error if report generation fails
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Error message explaining the cause of failure
   /api/classification/{id}:
     get:
       summary: Classifies an image as a cat or not
@@ -187,3 +230,32 @@ paths:
           description: Return the data from the db in JSON
         500:
           description: Return error with the message
+  /api/current-cat-count:
+    get:
+      summary: Retrieves the current count of cat pictures
+      description: |
+        Returns the count of cat pictures for different time periods (day, week, month).
+      responses:
+        '200':
+          description: Successfully retrieved cat picture counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  day:
+                    type: integer
+                    description: Number of pictures taken today
+                  week:
+                    type: integer
+                    description: Number of pictures taken in the last 7 days
+                  month:
+                    type: integer
+                    description: Number of pictures taken this month
+        '500':
+          description: Internal server error if count retrieval fails
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Error message explaining the cause of failure
