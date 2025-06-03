@@ -116,9 +116,9 @@ export default function CatMap() {
 
   return (
     <div className="w-full h-full relative">
-      <div ref={mapRef} className="w-full h-[600px] rounded-lg" />
+      <div ref={mapRef} className="w-full h-[600px] rounded-lg border-4 border-black" />
       {isLoading && (
-        <div className="absolute top-0 left-0 w-full h-[600px] bg-gray-200 rounded-lg flex items-center justify-center z-10">
+        <div className="absolute top-0 left-0 w-full h-[600px] bg-gray-200 rounded-lg border-4 border-black flex items-center justify-center z-10">
           <div className="text-gray-600">Loading map...</div>
         </div>
       )}

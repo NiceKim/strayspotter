@@ -43,7 +43,7 @@ export default function FeaturesSection({ onUploadClick }: FeaturesSectionProps)
   ]
 
   return (
-    <section className="py-16 md:py-24 bg-gradient-to-br from-white via-cat-light/30 to-cat-beige/50">
+    
       <div className="container mx-auto px-4">
         <FeaturesHeader />
 
@@ -64,6 +64,6 @@ export default function FeaturesSection({ onUploadClick }: FeaturesSectionProps)
 
         <FeaturesCTA onUploadClick={onUploadClick} />
       </div>
-    </section>
+   
   )
 }
