@@ -59,12 +59,40 @@ export async function fetchReport(timeFrame: "day" | "week" | "month"): Promise<
   }
 }
 
+interface CatCount {
+  day: number;
+  week: number;
+  month: number;
+}
+
+export async function fetchCatCount(): Promise<CatCount> {
+  try {
+    const response = await fetch(`${API_URL}/current-cat-count`)
+    if (!response.ok) {
+      throw new Error("Failed to fetch cat count")
+    }
+    return await response.json() as CatCount
+  } catch (error) {
+    console.error("Error fetching cat count:", error)
+    return {
+      day: 0,
+      week: 0,
+      month: 0
+    }
+  }
+}
+
+interface UploadResponse {
+  success: boolean;
+  message: string;
+}
+
 /**
  * Uploads an image to the backend
  * @param formData FormData containing the image and metadata
  * @returns Upload result
  */
-export async function uploadImage(formData: FormData): Promise<string> {
+export async function uploadImage(formData: FormData): Promise<UploadResponse> {
   try {
     const response = await fetch(`${API_URL}/upload`, {
       method: "POST",
@@ -75,10 +103,17 @@ export async function uploadImage(formData: FormData): Promise<string> {
       throw new Error("Failed to upload image")
     }
 
-    return await response.text()
+    const result = await response.text()
+    return {
+      success: true,
+      message: result
+    }
   } catch (error) {
     console.error("Error uploading image:", error)
-    throw error
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error occurred"
+    }
   }
 }
 
@@ -95,12 +130,10 @@ export function extractStrayCount(reportText: string): number {
 }
 
 /**
-
-* Fetches GPS data by ID
-
-* @param id Numeric ID
-* @returns Object containing latitude and longitude
-*/
+ * Fetches GPS data by ID
+ * @param id Numeric ID
+ * @returns Object containing latitude and longitude
+ */
 export async function fetchGPSByID(id: String): Promise<{ latitude?: number; longitude?: number }> {
   try {
     const response = await fetch(`${API_URL}/gps/${id}`);

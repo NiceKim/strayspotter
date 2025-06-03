@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { uploadImage } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
+import { useDataRefresh } from "@/contexts/DataRefreshContext"
 
 export default function UploadModal({
   isOpen,
@@ -25,6 +26,7 @@ export default function UploadModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const { toast } = useToast()
+  const { refreshData } = useDataRefresh()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,18 +39,18 @@ export default function UploadModal({
 
     try {
       setIsUploading(true)
-      await uploadImage(formData)
+      const result = await uploadImage(formData)
 
-      toast({
-        title: "Upload successful",
-        description: "Your cat photo has been uploaded successfully!",
-      })
-
-      if (onSuccess) {
-        onSuccess()
+      if (result.success) {
+        onClose()
+        refreshData()
+        toast({
+          title: "Upload successful",
+          description: "Your cat photo has been uploaded successfully!",
+        })
+      } else {
+        throw new Error(result.message)
       }
-
-      onClose()
     } catch (error) {
       console.error("Upload failed:", error)
       toast({

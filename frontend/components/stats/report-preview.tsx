@@ -4,7 +4,7 @@ import StatsSection from "./stats-section"
 
 interface ReportPreviewProps {
   stats: {
-    today: number
+    day: number
     week: number
     month: number
   }

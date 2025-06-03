@@ -2,7 +2,7 @@ import StatCard from "./stat-card"
 
 interface StatsSectionProps {
   stats: {
-    today: number
+    day: number
     week: number
     month: number
   }
@@ -12,7 +12,7 @@ interface StatsSectionProps {
 export default function StatsSection({ stats, isLoading }: StatsSectionProps) {
   const statItems = [
     {
-      value: stats.today,
+      value: stats.day,
       label: "Strays Spotted Today",
     },
     {

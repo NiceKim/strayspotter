@@ -8,8 +8,9 @@ import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
 import FeaturesSection from "@/components/features/feature-section"
 import ReportPreview from "@/components/stats/report-preview"
-import { fetchGalleryImages, fetchImageUrl, fetchReport, extractStrayCount } from "@/services/api"
+import { fetchGalleryImages, fetchImageUrl, fetchCatCount } from "@/services/api"
 import dynamic from "next/dynamic"
+import { useDataRefresh } from "@/contexts/DataRefreshContext"
 
 const CatMap = dynamic(() => import("@/components/cat-map"), {ssr: false})
 
@@ -18,12 +19,13 @@ export default function Home() {
   const [showSpeechBubble, setShowSpeechBubble] = useState(false)
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [stats, setStats] = useState({
-    today: 0,
+    day: 0,
     week: 0,
     month: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
   const mapRef = useRef<HTMLElement>(null)
+  const { refreshTrigger } = useDataRefresh()
 
   useEffect(() => {
     const loadData = async () => {
@@ -39,14 +41,12 @@ export default function Home() {
         setGalleryImages(imageUrls)
 
         // Fetch stats
-        const dayReport = await fetchReport("day")
-        const weekReport = await fetchReport("week")
-        const monthReport = await fetchReport("month")
+        const currentCatCount = await fetchCatCount()
 
         setStats({
-          today: extractStrayCount(dayReport),
-          week: extractStrayCount(weekReport),
-          month: extractStrayCount(monthReport),
+          day: currentCatCount.day,
+          week: currentCatCount.week,
+          month: currentCatCount.month,
         })
       } catch (error) {
         console.error("Error loading home page data:", error)
@@ -56,7 +56,7 @@ export default function Home() {
     }
 
     loadData()
-  }, [])
+  }, [refreshTrigger])
 
   const openUploadModal = () => setIsUploadModalOpen(true)
   const closeUploadModal = () => setIsUploadModalOpen(false)
