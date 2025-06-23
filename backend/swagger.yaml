@@ -299,3 +299,51 @@ paths:
                     type: string
                     example: ok
                     description: Health status message
+  /api/gps/{id}:
+    get:
+      summary: Retrieves GPS coordinates for a specific picture
+      description: |
+        Retrieves GPS coordinates (latitude and longitude) for a given picture ID from the database.
+      parameters:
+        - name: id
+          in: path
+          description: The ID of the picture to retrieve GPS coordinates for.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successfully retrieved GPS coordinates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  latitude:
+                    type: number
+                    format: double
+                    description: Latitude coordinate of the picture location
+                  longitude:
+                    type: number
+                    format: double
+                    description: Longitude coordinate of the picture location
+        '400':
+          description: Bad Request - Invalid picture ID parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message explaining the validation failure
+        '500':
+          description: Internal server error if GPS data retrieval fails
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message explaining the cause of failure
