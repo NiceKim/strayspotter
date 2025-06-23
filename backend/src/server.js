@@ -136,7 +136,7 @@ app.get(`${API_PREFIX}/image-url`, async (req, res) => {
  * @throws {500} If there is an error during report generation
  */
 app.get(`${API_PREFIX}/report`, async (req, res) => {
-  const connection = db.createDbConnection(IS_TEST);
+  const pool = db.pool;
   const { timeFrame, statusFilter, startDate, endDate, month } = req.query;
   
   if (!timeFrame) {
@@ -175,13 +175,11 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
       };
     }
 
-    const reportData = await createReport(connection, timeFrame, options);
+    const reportData = await createReport(pool, timeFrame, options);
     res.json(reportData);
   } catch (err) {
     console.error("Report generation error:", err);
     res.status(500).json("Report generation failed");
-  } finally {
-    connection.end();
   }
 });
 
@@ -196,16 +194,14 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
  * @throws {500} If there is an error fetching the count data
  */
 app.get(`${API_PREFIX}/current-cat-count`, async (req, res) => {
-  const connection = db.createDbConnection(IS_TEST);
+  const pool = db.pool;
 
   try {
-    const reportData = await db.getCurrentPictureCount(connection, 0);
+    const reportData = await db.getCurrentPictureCount(pool, 0);
     res.json(reportData);
   } catch (err) {
     console.error("Report generation error:", err);
     res.status(500).json("Report generation failed");
-  } finally {
-    connection.end();
   }
 });
 
@@ -222,16 +218,14 @@ app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
   if (!file) {
     return res.status(400).send('No file selected!');
   }
-  const connection = db.createDbConnection(IS_TEST);
+  const pool = db.pool;
   try {
-    const result = await processImageUpload(connection,file, status);
+    const result = await processImageUpload(pool,file, status);
     console.log(`uploaded new picture ${result}`);
     res.status(200).send("Picture sucessfully uploaded");
   } catch (generalErr) {
     console.error("General error in upload:", generalErr);
     res.status(400).send("File upload failed due to errors");
-  } finally {
-    connection.end();
   }
 });
 
@@ -253,23 +247,6 @@ app.get(`${API_PREFIX}/classification/:id`, async (req, res) => {
   }
 });
 
-/**
- * Fetch all data from DB in JSON
- *
- * @returns {Object} the data from the db in JSON
- */
-app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
-  const connection = db.createDbConnection(IS_TEST);
-  try {
-    const data = await db.fetchAllDb(connection);
-    res.json(data);
-  } catch (err) {
-    console.error("Error fetching DB data:", err);
-    res.status(500).json({ error: "Failed to fetch GPS data" });
-  } finally {
-    connection.end();
-  }
-});
 
 /**
  * Retrieves GPS coordinates (latitude and longitude) for a given ID from the database
@@ -283,15 +260,13 @@ app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
  * @throws {Error} Throws a generic error, responds with status 500 and the error message.
  */
 app.get(`${API_PREFIX}/gps/:id`, async (req, res) => {
-  const connection = db.createDbConnection(IS_TEST);
+  const pool = db.pool;
   try {
-    const {latitude, longitude} = await db.fetchGPSByID(connection, req.params.id);
+    const {latitude, longitude} = await db.fetchGPSByID(pool, req.params.id);
     res.json({latitude, longitude});
   } catch (err) {
     const status = err instanceof CustomError ? err.statusCode : 500
     res.status(status).json({ error: err.message })
-  } finally {
-    connection.end();
   }
 });
 

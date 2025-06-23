@@ -1,4 +1,4 @@
-const { createDbConnection, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID, fetchGPSByID} = require('../src/db.js');
+const { pool, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID, fetchGPSByID} = require('../src/db.js');
 const { CustomError } = require('../errors/CustomError')
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
@@ -13,41 +13,38 @@ const sampleData = {
   catStatus : 'happy'
 };
 
-async function selectFunction(connection, insertId) {
+process.env.NODE_ENV = 'test';
+
+async function selectFunction(insertId) {
   const sql = 'SELECT * FROM pictures WHERE id = ?';
-  const [result] = await connection.promise().query(sql, [insertId]);
+  const [result] = await pool.query(sql, [insertId]);
   return result;
 }
 
-async function clearTestDb(connection) {
+async function clearTestDb() {
   const sql = 'DELETE FROM pictures'
-  const [result] = await connection.promise().query(sql);
+  const [result] = await pool.query(sql);
   return result;
 }
 
 describe('insertDatatoDb', () => {
   const emptyData = {};
 
-  let connection;
-  beforeAll(() => {
-    connection = createDbConnection(true);
-  });
   afterAll(async () => {
-    await clearTestDb(connection);
-    connection.end();
+    await clearTestDb();
   });
 
   it('should return insertID after inserting, and verify DB insert', async () => {
-    const result = await insertDataToDb(connection, sampleData);
-    const check = await selectFunction(connection, result);
+    const result = await insertDataToDb(pool, sampleData);
+    const check = await selectFunction(result);
 
     expect(typeof result).toBe('number');
     expect(check.length).toBe(1);
   });
 
   it('should handle empty data', async () => {
-    const result = await insertDataToDb(connection, emptyData);
-    const check = await selectFunction(connection, result);
+    const result = await insertDataToDb(pool, emptyData);
+    const check = await selectFunction(result);
     expect(check[0].date_taken).toBeInstanceOf(Date);
     expect(check[0].latitude).toBe(null);
     expect(check[0].longitude).toBe(null);
@@ -56,25 +53,20 @@ describe('insertDatatoDb', () => {
 })
 
 describe('fetchByID', () => {
-  let connection;
-  beforeAll(() => {
-    connection = createDbConnection(true);
-  });
   afterAll(async () => {
-    await clearTestDb(connection);
-    connection.end();
+    await clearTestDb();
   });
 
   it('should return object with valid information', async () => {
-    const testID = await insertDataToDb(connection, sampleData);
-    const {latitude, longitude} = await fetchByID(connection, testID);
+    const testID = await insertDataToDb(pool, sampleData);
+    const {latitude, longitude} = await fetchByID(pool, testID);
     expect(latitude).toBe(sampleData.latitude);
     expect(longitude).toBe(sampleData.longitude);
   })
 
   it('should throw error with invalid ID', async () => {
     const invalidID = "?"
-    await expect(fetchByID(connection, invalidID)).rejects.toThrowError('No data found for the given ID');
+    await expect(fetchByID(pool, invalidID)).rejects.toThrowError('No data found for the given ID');
   })
 })
 
@@ -83,21 +75,18 @@ describe('getCurrentPictureCount', () => {
     date: new Date(),
     districtNo: 12
   };
-  let connection;
   beforeAll(async () => {
-    connection = createDbConnection(true);
-    await insertDataToDb(connection, mockData);
-    await insertDataToDb(connection, mockData);
+    await insertDataToDb(pool, mockData);
+    await insertDataToDb(pool, mockData);
     mockData.districtNo = 11;
-    await insertDataToDb(connection, mockData);
+    await insertDataToDb(pool, mockData);
   });
   afterAll(async () => {
-    await clearTestDb(connection);
-    connection.end();
+    await clearTestDb();
   });
 
   it('should return counts for all time periods for a specific district', async () => {
-    const result = await getCurrentPictureCount(connection, 12);
+    const result = await getCurrentPictureCount(pool, 12);
     expect(result).toEqual({
       day: 2,
       week: 2,
@@ -106,7 +95,7 @@ describe('getCurrentPictureCount', () => {
   });
 
   it('should return 0 for all periods for invalid district', async () => {
-    const result = await getCurrentPictureCount(connection, -1);
+    const result = await getCurrentPictureCount(pool, -1);
     expect(result).toEqual({
       day: 0,
       week: 0,
@@ -115,7 +104,7 @@ describe('getCurrentPictureCount', () => {
   });
 
   it('should return total counts for all districts if district is 0', async () => {
-    const result = await getCurrentPictureCount(connection, 0);
+    const result = await getCurrentPictureCount(pool, 0);
     expect(result).toEqual({
       day: 3,
       week: 3,
@@ -125,38 +114,35 @@ describe('getCurrentPictureCount', () => {
 })
 
 describe('fetchRecentPhotoID', () => {
-  let connection;
   const insertIds = [];
 
   beforeAll(async () => {
-    connection = createDbConnection(true);
     for (let i=0; i<5; i++) {
-      let insertId = await insertDataToDb(connection, sampleData);
+      let insertId = await insertDataToDb(pool, sampleData);
       insertIds.push(insertId);
     }
   })
   afterAll(async () => {
-    await clearTestDb(connection);
-    connection.end();
+    await clearTestDb();
   })
 
   it('should return 3 ids with parameter 3', async () => {
-    const result = await fetchRecentPhotoID(connection, 3);
+    const result = await fetchRecentPhotoID(pool, 3);
     expect(result.length).toBe(3);
   })
 
   it('should return max num ids with parameter bigger than length', async () => {
-    const result = await fetchRecentPhotoID(connection, 10);
+    const result = await fetchRecentPhotoID(pool, 10);
     expect(result.length).toBe(5);
   })
 
   it('should return 4, default number of ids with no parameter', async () => {
-    const result = await fetchRecentPhotoID(connection);
+    const result = await fetchRecentPhotoID(pool);
     expect(result.length).toBe(4);
   })
 
   it('should skip recent photos based on the parameter', async () => {
-    const result = await fetchRecentPhotoID(connection, 2, 1);
+    const result = await fetchRecentPhotoID(pool, 2, 1);
     expect(result[0].id).toBe(insertIds[3]);
     expect(result[1].id).toBe(insertIds[2]);
   })
@@ -164,16 +150,8 @@ describe('fetchRecentPhotoID', () => {
 })
 
 describe('Reverse Geocode', () => {
-  let connection;
-  beforeAll(() => {
-    connection = createDbConnection(false);
-  })
-  afterAll(() => {
-    connection.end();
-  })
-
   it('should convert GPS coordinates to the correct address', async () => {
-    result = await reverseGeocode(connection, sampleData.latitude, sampleData.longitude);
+    result = await reverseGeocode(pool, sampleData.latitude, sampleData.longitude);
     expect(result.districtNo).toBe(15);
     expect(result.postcode).toBe(428074);
     expect(result.districtName).toBe('Katong, Joo Chiat, Amber Road');
@@ -181,47 +159,36 @@ describe('Reverse Geocode', () => {
 });
 
 describe('deleteByID function', () => {
-  let connection;
-  beforeAll(() => {
-    connection = createDbConnection(true);
-  })
   afterAll(async () => {
-    await clearTestDb(connection);
-    connection.end();
+    await clearTestDb();
   })
 
   it('should delete the record by ID and return the number of affected rows', async () => {
-    const insertedID = await insertDataToDb(connection, sampleData);
-    const result = await deleteByID(connection, insertedID);
+    const insertedID = await insertDataToDb(pool, sampleData);
+    const result = await deleteByID(pool, insertedID);
     expect(result).toBe(1);
   });
 });
 
 describe('fetchGPSByID',  () => {
-  let connection;
-
-  beforeAll(() => {
-    connection = createDbConnection(true);
-  })
   afterAll(async () => {
-    await clearTestDb(connection);
-    connection.end();
+    await clearTestDb();
   })
 
   it('should throw error if id is missing', async () => {
-    await expect(fetchGPSByID(connection, null)).rejects.toThrow(CustomError)
-    await expect(fetchGPSByID(connection, undefined)).rejects.toThrow("ID parameter missing")
+    await expect(fetchGPSByID(pool, null)).rejects.toThrow(CustomError)
+    await expect(fetchGPSByID(pool, undefined)).rejects.toThrow("ID parameter missing")
   })
   it('should throw error if id is not a number or numeric string', async () => {
-    await expect(fetchGPSByID(connection, 'abc')).rejects.toThrow("ID must be a number")
-    await expect(fetchGPSByID(connection, {})).rejects.toThrow("ID must be a number")
+    await expect(fetchGPSByID(pool, 'abc')).rejects.toThrow("ID must be a number")
+    await expect(fetchGPSByID(pool, {})).rejects.toThrow("ID must be a number")
   })
   it('should throw error if no record found', async () => {
-    await expect(fetchGPSByID(connection, -1)).rejects.toThrow("Invalid ID")
+    await expect(fetchGPSByID(pool, -1)).rejects.toThrow("Invalid ID")
   })
   it('should return gps data when record found', async () => {
-    const id = await insertDataToDb(connection, sampleData);
-    const result = await fetchGPSByID(connection, id);
+    const id = await insertDataToDb(pool, sampleData);
+    const result = await fetchGPSByID(pool, id);
     expect(result).toEqual({
       latitude: sampleData.latitude,
       longitude: sampleData.longitude

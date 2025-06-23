@@ -132,33 +132,18 @@ async function getValidToken(connection) {
 // Exported function
 ///////////////////////////////////////////////////////////////////////////////////////
 
-/**
- * Creates a connection to the MySQL database.
- * 
- * This function establishes a connection to the MySQL database with the given configuration details,
- * such as host, user, database name, and password, which are used to connect to either the 'strayspotter_database'
- * or a test database depending on the value of the `test` parameter.
- * 
- * @param {boolean} test - A flag indicating whether to use the test database (`true`) or the main database (`false`).
- * @returns {Object} The MySQL connection object used for interacting with the database.
- */
-function createDbConnection(test = false) {
-  let database_name;
-  if (test) {
-    database_name = 'strayspotter_database_test';
-  }
-  else {
-    database_name = 'strayspotter_database';
-  }
-  const connection = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: 'root',
-    database: database_name,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT
-  });
-  return connection;
-}
+// Create a single connection pool for the app
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: 'root',
+  database: process.env.IS_TEST === "true" ? 'strayspotter_database_test' : 'strayspotter_database',
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+const poolPromise = pool.promise();
 
 /**
  * Inserts picture metadata and additional data into the database.
@@ -426,8 +411,8 @@ module.exports = {
   getDailyPictureCount,
   getMonthlyPictureCount,
   fetchAllDb,
-  createDbConnection,
   fetchRecentPhotoID,
   deleteByID,
-  fetchGPSByID
+  fetchGPSByID,
+  pool: poolPromise
 };
