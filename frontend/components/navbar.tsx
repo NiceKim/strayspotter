@@ -3,12 +3,18 @@
 import {useState} from "react"
 import Link from "next/link"
 import Image from "next/image"
-import {usePathname} from "next/navigation"
+import {usePathname, useRouter} from "next/navigation"
 import {Menu, X} from "lucide-react"
 
-export default function Navbar({openUploadModal}: { openUploadModal?: () => void }) {
+interface NavbarProps {
+    openUploadModal?: () => void;
+    mapRef?: React.RefObject<HTMLElement | null>;
+}
+
+export default function Navbar({openUploadModal, mapRef}: NavbarProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const pathname = usePathname()
+    const router = useRouter()
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen)
@@ -16,6 +22,23 @@ export default function Navbar({openUploadModal}: { openUploadModal?: () => void
 
     const isActive = (path: string) => {
         return pathname === path
+    }
+
+    const handleMapClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (pathname !== '/') {
+            router.push('/#map');
+        } else if (mapRef?.current) {
+            const windowHeight = window.innerHeight;
+            const sixthScreen = windowHeight / 6;
+            const elementPosition = mapRef.current.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - sixthScreen;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+        }
     }
 
     return (
@@ -77,31 +100,11 @@ export default function Navbar({openUploadModal}: { openUploadModal?: () => void
                 <li className="px-5 py-2 md:p-0">
                     <Link
                         href="/#map"
-                        className={`nav-link rounded-md md:px-4 md:py-2 text-white ${
-                            isActive("/map")
-                                ? "bg-primary"
-                                : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
-                        }`}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            const mapElement = document.getElementById('map');
-                            if (mapElement) {
-                                const windowHeight = window.innerHeight;
-                                const sixthScreen = windowHeight / 6;
-
-                                const elementPosition = mapElement.getBoundingClientRect().top + window.pageYOffset;
-                                const offsetPosition = elementPosition - sixthScreen;
-
-                                window.scrollTo({
-                                    top: offsetPosition,
-                                    behavior: 'smooth'
-                                });
-                            }
-                        }}
+                        className={`nav-link rounded-md md:px-4 md:py-2 text-white hover:bg-white hover:bg-opacity-10 hover:text-primary`}
+                        onClick={handleMapClick}
                     >
                         Map
                     </Link>
-
                 </li>
 
                 <li className="px-5 py-2 md:p-0">
@@ -119,13 +122,15 @@ export default function Navbar({openUploadModal}: { openUploadModal?: () => void
             </ul>
 
             <div className="hidden md:block">
-                <button
-                    onClick={openUploadModal}
-                    className="transition-transform duration-300 hover:rotate-12"
-                    aria-label="Upload"
-                >
-                    <Image src="/resources/camera_icon.png" alt="Upload" width={50} height={50}/>
-                </button>
+                {openUploadModal && (
+                    <button
+                        onClick={openUploadModal}
+                        className="transition-transform duration-300 hover:rotate-12"
+                        aria-label="Upload"
+                    >
+                        <Image src="/resources/camera_icon.png" alt="Upload" width={50} height={50}/>
+                    </button>
+                )}
             </div>
         </nav>
     )

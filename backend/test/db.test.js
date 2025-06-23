@@ -96,29 +96,32 @@ describe('getCurrentPictureCount', () => {
     connection.end();
   });
 
-  it('should return the number of pictures that is taken today', async () => {
-    expect(await getCurrentPictureCount(connection, 12, "day")).toBe(2);
-  })
-  
-  it('should return the number of pictures that is taken this week', async () => {
-    expect(await getCurrentPictureCount(connection, 12, "week")).toBe(2);
-  })
-  
-  it('should return the number of pictures that is taken this month', async () => {
-    expect(await getCurrentPictureCount(connection, 12, "month")).toBe(2);
-  })
-
-  it('should throw error for invalid range', async () => {
-     await expect(getCurrentPictureCount(connection, 12, "invalid")).rejects.toThrowError('Invalid range parameter given');
+  it('should return counts for all time periods for a specific district', async () => {
+    const result = await getCurrentPictureCount(connection, 12);
+    expect(result).toEqual({
+      day: 2,
+      week: 2,
+      month: 2
+    });
   });
 
-   it('should return 0 for invalid district', async () => {
-    expect(await getCurrentPictureCount(connection, -1, "day")).toBe(0);
-   });
+  it('should return 0 for all periods for invalid district', async () => {
+    const result = await getCurrentPictureCount(connection, -1);
+    expect(result).toEqual({
+      day: 0,
+      week: 0,
+      month: 0
+    });
+  });
 
-    it('should return total number of pictures if district is 0', async () => {
-    expect(await getCurrentPictureCount(connection, 0, "day")).toBe(3);
-  })
+  it('should return total counts for all districts if district is 0', async () => {
+    const result = await getCurrentPictureCount(connection, 0);
+    expect(result).toEqual({
+      day: 3,
+      week: 3,
+      month: 3
+    });
+  });
 })
 
 describe('fetchRecentPhotoID', () => {

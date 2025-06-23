@@ -1,9 +1,9 @@
-
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from '@/components/theme-provider'
+import { DataRefreshProvider } from '../contexts/DataRefreshContext'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -33,14 +33,14 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
+        <DataRefreshProvider>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            {children}
+          </ThemeProvider>
+        </DataRefreshProvider>
       </body>
     </html>
   )
 }
-
-
 
 import './globals.css'
