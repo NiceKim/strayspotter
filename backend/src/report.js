@@ -1,6 +1,4 @@
-const { NumbertoName } = require('./postal_data');
-const ExcelJS = require('exceljs');
-
+const { getDailyPictureCount, getMonthlyPictureCount } = require('./db');
 
 /**
  * Creates a picture report (daily or monthly) by fetching and aggregating picture count data.
@@ -22,13 +20,30 @@ const ExcelJS = require('exceljs');
  * @throws {Error} If an invalid reportType is provided
  */
 async function createReport(connection, reportType, options) {
+  // Validate parameters
+  if (reportType === 'daily') {
+    if (!options.startDate || !options.endDate) {
+      throw new Error('startDate and endDate are required for daily reports');
+    }
+    if (!validateDateFormat(options.startDate) || !validateDateFormat(options.endDate)) {
+      throw new Error('startDate and endDate must be in YYYY-MM-DD format');
+    }
+  } else if (reportType === 'monthly') {
+    if (!options.month) {
+      throw new Error('month is required for monthly reports');
+    }
+    if (!validateMonthFormat(options.month)) {
+      throw new Error('month must be in YYYY-MM format');
+    }
+  } else {
+    throw new Error(`Invalid report Type: ${reportType}. Supported types are 'daily', 'monthly'.`);
+  }
+
   let rawData;
   if (reportType === 'daily') {
     rawData = await getDailyPictureCount(connection, options);
   } else if (reportType === 'monthly') {
     rawData = await getMonthlyPictureCount(connection, options);
-  } else {
-    throw new Error(`Invalid report Type: ${reportType}. Supported types are 'daily', 'monthly'.`);
   }
 
   const periodTotals = {};
@@ -52,64 +67,18 @@ async function createReport(connection, reportType, options) {
   };
 }
 
+// Day(YYYY-MM-DD) Check Format
+function validateDateFormat(dateStr) {
+  // YYYY-MM-DD
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
+}
 
-/**
- * Create Excel report file from daily report data using exceljs
- * @param {Object} reportData
- * @param {Array} reportData.records - raw data array (Time, District Number, record_count)
- * @param {Object} reportData.totals.byPeriod - { 'YYYY-MM-DD': totalCount } | {'YYYYMM': totalCount } 
- * @param {Object} reportData.totals.byDistrict - { district_no: totalCount }
- * @param {number} reportData.totals.overall - grand total count
- * @param {string} filePath - output xlsx file path
- */
-async function createExcelReport(reportData, filePath) {
-  const { byPeriod, byDistrict, overall } = reportData.totals;
-  const records = reportData.records;
-  const periods = Object.keys(byPeriod).sort();
-  const districts = Object.keys(byDistrict).map(Number).sort((a, b) => a - b);
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Report');
+// Month(YYYY-MM) Check Format
+function validateMonthFormat(monthStr) {
+  // YYYY-MM
+  return /^\d{4}-\d{2}$/.test(monthStr);
+}
 
-  // Create first Row : Header
-  const headerRow = ['No', 'District Name', ...periods, 'Total'];
-  worksheet.addRow(headerRow);
-
-  // Create rows by each districts
-  for (const district of districts) {
-    const row = [district];
-    row.push(NumbertoName[district]);
-    // columns based on each time period
-    for (const period of periods) {
-      const rec = records.find(
-        r => r.district_no === district && (r.date_taken === period || r.year_week === period)
-      );
-      row.push(rec ? rec.record_count : 0);
-    }
-    // district total column
-    row.push(byDistrict[district] || 0);
-    worksheet.addRow(row);
-  }
-
-  // Create Last Row: Totals
-  const totalRow = ['Total', '', ...periods.map(p => byPeriod[p] || 0), overall];
-  worksheet.addRow(totalRow);
-
-  // Styles
-  worksheet.getRow(1).font = { bold: true };
-  worksheet.getRow(worksheet.rowCount).font = { bold: true };
-  worksheet.columns.forEach((column, index) => {
-    let maxLength = 10;
-    column.eachCell({ includeEmpty: true }, cell => {
-      const value = cell.value ? cell.value.toString() : '';
-      if (value.length > maxLength) maxLength = value.length;
-      cell.alignment = {
-      vertical: 'middle',
-      horizontal: index === 1 ? 'left' : 'center'
-    };
-    });
-    column.width = maxLength;
-  });
-
-  await workbook.xlsx.writeFile(filePath);
-  console.log(`✅ Excel report saved to ${filePath}`);
+module.exports = {
+  createReport,
 }

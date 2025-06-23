@@ -1,6 +1,7 @@
 {
   "scripts": {
     "dev": "nodemon src/server.js",
+    "dev-test": "cross-env IS_TEST=true nodemon src/server.js",
     "start": "node src/server.js",
     "test": "jest"
   },
@@ -9,6 +10,7 @@
     "@aws-sdk/s3-request-presigner": "^3.709.0",
     "axios": "^1.7.7",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
     "exifr": "^7.1.3",

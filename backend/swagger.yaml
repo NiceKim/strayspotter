@@ -119,7 +119,42 @@ paths:
             application/json:
               schema:
                 type: object
-                description: The generated report data
+                properties:
+                  records:
+                    type: array
+                    description: Array of result rows
+                    items:
+                      type: object
+                      properties:
+                        date_taken:
+                          type: string
+                          description: Date (for daily reports)
+                        year_week:
+                          type: string
+                          description: Year and week (for weekly/monthly reports, may be absent)
+                        district_no:
+                          type: integer
+                          description: District number
+                        record_count:
+                          type: integer
+                          description: Record count for the given district/period
+                  totals:
+                    type: object
+                    description: Aggregated totals
+                    properties:
+                      byPeriod:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                        description: Total count per period (date/month, etc.)
+                      byDistrict:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                        description: Total count per district
+                      overall:
+                        type: integer
+                        description: Grand total
         '400':
           description: Bad Request - Missing or invalid parameters
           content:
@@ -219,17 +254,6 @@ paths:
                   error:
                     type: string
                     description: Error message detailing the cause of the failure.
-
-
-  /api/admin/db:
-    get:
-      summary: Fetch all data from DB
-      description: Fetch all data from DB in JSON
-      responses:
-        200:
-          description: Return the data from the db in JSON
-        500:
-          description: Return error with the message
   /api/current-cat-count:
     get:
       summary: Retrieves the current count of cat pictures
@@ -259,3 +283,19 @@ paths:
               schema:
                 type: string
                 description: Error message explaining the cause of failure
+  /health:
+    get:
+      summary: Health check
+      description: Returns server status for monitoring or load balancer health checks.
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                    description: Health status message

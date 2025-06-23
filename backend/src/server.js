@@ -11,6 +11,7 @@ const HOST = process.env.HOST;
 const PORT = process.env.PORT;
 const SECOND_SERVER_HOST = process.env.SECOND_HOST;
 const SECOND_SERVER_PORT = process.env.SECOND_PORT;
+const IS_TEST = process.env.IS_TEST === "true";
 
 // Apply CORS middleware to allow frontend
 const cors = require('cors'); 
@@ -40,31 +41,8 @@ const receiveImage = multer({
 const db = require('./db');
 const { processImageUpload } = require('./image_handler')
 const { axios } = require('axios');
-const { CustomError } = require('../errors/CustomError.js')
-
-///////////////////////////////////////////////////////////////////////////////////////
-// UTILITY FUNCTIONS
-///////////////////////////////////////////////////////////////////////////////////////
-const { NumbertoName } = require('./postal_data.js');
-
-/**
- * Creates a report based on the total number of pictures and the count per district for a given request type.
- * 
- * @param {"day" | "week" | "month"} timeFrame - The time range for counting pictures.
- * @returns {Promise<string>} Resolves with the generated HTML report.
- */
-async function createReport(connection, timeFrame) {
-  let report = "";
-  let total = await db.getCurrentPictureCount(connection, 0, timeFrame);
-  report = report.concat(`TOTAL NUMBER: ${total}<br><br>`);
-
-  for (let district_i = 1; district_i <= 28; district_i++) {
-    const district_name = NumbertoName[district_i];
-    const count = await db.getCurrentPictureCount(connection, district_i, timeFrame);
-    report = report.concat(`${district_name}: ${count}<br>`);
-  }
-  return report;
-}
+const { CustomError } = require('../errors/CustomError.js');
+const { createReport, createExcelReport } = require('./report.js');
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // API ENDPOINTS
@@ -158,22 +136,27 @@ app.get(`${API_PREFIX}/image-url`, async (req, res) => {
  * @throws {500} If there is an error during report generation
  */
 app.get(`${API_PREFIX}/report`, async (req, res) => {
-  const connection = db.createDbConnection();
+  const connection = db.createDbConnection(IS_TEST);
   const { timeFrame, statusFilter, startDate, endDate, month } = req.query;
   
   if (!timeFrame) {
+    console.log('timeFrame is required');
     return res.status(400).send('timeFrame is required');
   }
   if (timeFrame !== 'daily' && timeFrame !== 'monthly') {
+    console.log('timeFrame must be either "daily" or "monthly"');
     return res.status(400).send('timeFrame must be either "daily" or "monthly"');
   }
   if (statusFilter && !['happy', 'normal', 'sad'].includes(statusFilter)) {
+    console.log('statusFilter must be either "happy", "normal", or "sad"');
     return res.status(400).send('statusFilter must be either "happy", "normal", or "sad"');
   }
   if (timeFrame === 'daily' && (!startDate || !endDate)) {
+    console.log('startDate and endDate are required for daily reports');
     return res.status(400).send('startDate and endDate are required for daily reports');
   }
   if (timeFrame === 'monthly' && !month) {
+    console.log('month is required for monthly reports (YYYY-MM format)');
     return res.status(400).send('month is required for monthly reports (YYYY-MM format)');
   }
 
@@ -213,7 +196,7 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
  * @throws {500} If there is an error fetching the count data
  */
 app.get(`${API_PREFIX}/current-cat-count`, async (req, res) => {
-  const connection = db.createDbConnection();
+  const connection = db.createDbConnection(IS_TEST);
 
   try {
     const reportData = await db.getCurrentPictureCount(connection, 0);
@@ -239,7 +222,7 @@ app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
   if (!file) {
     return res.status(400).send('No file selected!');
   }
-  const connection = db.createDbConnection();
+  const connection = db.createDbConnection(IS_TEST);
   try {
     const result = await processImageUpload(connection,file, status);
     console.log(`uploaded new picture ${result}`);
@@ -276,7 +259,7 @@ app.get(`${API_PREFIX}/classification/:id`, async (req, res) => {
  * @returns {Object} the data from the db in JSON
  */
 app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
-  const connection = db.createDbConnection();
+  const connection = db.createDbConnection(IS_TEST);
   try {
     const data = await db.fetchAllDb(connection);
     res.json(data);
@@ -300,7 +283,7 @@ app.get(`${API_PREFIX}/admin/db`, async (req, res) => {
  * @throws {Error} Throws a generic error, responds with status 500 and the error message.
  */
 app.get(`${API_PREFIX}/gps/:id`, async (req, res) => {
-  const connection = db.createDbConnection();
+  const connection = db.createDbConnection(IS_TEST);
   try {
     const {latitude, longitude} = await db.fetchGPSByID(connection, req.params.id);
     res.json({latitude, longitude});
@@ -310,6 +293,14 @@ app.get(`${API_PREFIX}/gps/:id`, async (req, res) => {
   } finally {
     connection.end();
   }
+});
+
+/**
+ * Health check endpoint
+ * Returns server status for monitoring
+ */
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
 });
 
 app.use((err, req, res, next) => {

@@ -42,20 +42,86 @@ export async function fetchImageUrl(key: string): Promise<{ url: string; latitud
 }
 
 /**
- * Fetches report data based on timeframe
- * @param timeFrame 'day', 'week', or 'month'
- * @returns Report data as HTML string
+ * Report data structure
  */
-export async function fetchReport(timeFrame: "day" | "week" | "month"): Promise<string> {
+export interface ReportData {
+  records: Array<{
+    districtNumber: string
+    districtName: string
+    data: Record<string, number>
+  }>
+  totals: {
+    byPeriod: Record<string, number>
+    byDistrict: Record<string, number>
+    overall: number
+  }
+}
+
+/**
+ * Fetches report data based on timeframe
+ * @param timeframe 'day', 'week', or 'month'
+ * @returns Report data structure or HTML string for legacy support
+ */
+export async function fetchReport(timeframe: "day" | "week" | "month"): Promise<string | ReportData> {
   try {
-    const response = await fetch(`${API_URL}/report?timeFrame=${timeFrame}`)
+    const response = await fetch(`${API_URL}/report?method=${timeframe}`)
     if (!response.ok) {
       throw new Error("Failed to fetch report")
     }
-    return await response.json()
+
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("application/json")) {
+      return (await response.json()) as ReportData
+    } else {
+      // Legacy HTML response
+      return await response.text()
+    }
   } catch (error) {
     console.error("Error fetching report:", error)
     return "Error loading report data"
+  }
+}
+
+/**
+ * Fetches detailed report data for table display
+ * @param params { reportType, startDate, endDate, month, statusFilter }
+ * @returns Structured report data
+ */
+export async function fetchDetailedReport({
+  reportType,
+  startDate,
+  endDate,
+  month,
+  statusFilter
+}: {
+  reportType: "daily" | "monthly",
+  startDate?: string,
+  endDate?: string,
+  month?: string,
+  statusFilter?: "happy" | "normal" | "sad"
+}): Promise<ReportData> {
+  const params = new URLSearchParams()
+  params.append("timeFrame", reportType)
+  if (reportType === "daily") {
+    if (startDate) params.append("startDate", startDate)
+    if (endDate) params.append("endDate", endDate)
+  }
+  if (reportType === "monthly" && month) {
+    params.append("month", month)
+  }
+  if (statusFilter) {
+    params.append("statusFilter", statusFilter)
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/report?${params.toString()}`)
+    if (!response.ok) {
+      throw new Error("Failed to fetch detailed report")
+    }
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching detailed report:", error)
+    throw error
   }
 }
 
