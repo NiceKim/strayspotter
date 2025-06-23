@@ -141,7 +141,7 @@
 ![System Architecture StratySpotter drawio](https://github.com/user-attachments/assets/abb3e0cc-9dbe-4aa3-9df9-2be08342e4e0)
 
 ## API Specification
-![image](https://github.com/user-attachments/assets/0feed60d-8af9-4b7c-93d3-2ef948388150)
+![Image](https://github.com/user-attachments/assets/499be5a2-3118-4419-95bb-00513901e30b)
 
 ## Database Diagram
 ![ERD](https://github.com/user-attachments/assets/6bd28c18-6afa-4bbd-b323-b4f4202c9c6e)
