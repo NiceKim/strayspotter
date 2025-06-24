@@ -281,6 +281,7 @@ async function getDailyPictureCount(connection, {startDate, endDate, statusFilte
       COUNT(*) AS record_count
     FROM pictures
     WHERE date_taken BETWEEN ? AND ?
+    AND district_no IS NOT NULL
   `;
   const params = [startDate, endDate];
   if (statusFilter !== 'all') {
@@ -309,6 +310,7 @@ async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'})
       COUNT(*) AS record_count
     FROM pictures
     WHERE YEAR(date_taken) = ? AND MONTH(date_taken) = ?
+    AND district_no IS NOT NULL
   `;
   if (statusFilter !== 'all') {
     query += ` AND cat_status = ?`;
