@@ -11,7 +11,6 @@ const HOST = process.env.HOST;
 const PORT = process.env.PORT;
 const SECOND_SERVER_HOST = process.env.SECOND_HOST;
 const SECOND_SERVER_PORT = process.env.SECOND_PORT;
-const IS_TEST = process.env.IS_TEST === "true";
 
 // Apply CORS middleware to allow frontend
 const cors = require('cors'); 
@@ -42,7 +41,7 @@ const db = require('./db');
 const { processImageUpload } = require('./image_handler')
 const { axios } = require('axios');
 const { CustomError } = require('../errors/CustomError.js');
-const { createReport, createExcelReport } = require('./report.js');
+const { createReport } = require('./report');
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // API ENDPOINTS
@@ -50,12 +49,12 @@ const { createReport, createExcelReport } = require('./report.js');
 
 // API endpoint prefix to differentiate from React routes
 const API_PREFIX = '/api';
-const { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand} = require('@aws-sdk/client-s3');
+const { S3Client, ListObjectsV2Command, GetObjectCommand} = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const bucket_name = "strayspotter-bucket";
+const bucket_name = process.env.NODE_ENV === 'production' ? "strayspotter-prod-bucket" : "strayspotter-test-bucket";
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'ap-southeast-1',  // 환경변수가 없을 경우 기본값 사용
+  region: process.env.AWS_REGION || 'ap-southeast-1',
   credentials: {
     accessKeyId: process.env.ACCESS_KEY_ID,
     secretAccessKey: process.env.SECRET_ACCESS_KEY_ID,
@@ -73,13 +72,17 @@ const s3Client = new S3Client({
 app.get(`${API_PREFIX}/images`, async (req, res) => {
   const params = {
     Bucket: bucket_name,
+    Prefix: 'gallery/'
   };
   const maxKeys = req.query.maxKeys || 100; // Default to 100 if not specified
 
   try {
     const command = new ListObjectsV2Command(params);
     const data = await s3Client.send(command);
-    const imageKeys = (data.Contents || []).map(item => item.Key);
+    const imageKeys = (data.Contents || [])
+      .map(item => item.Key)
+      .filter(key => key.startsWith('gallery/') && key !== 'gallery/')
+      .map(key => key.replace('gallery/', '')); // Remove 'gallery/' prefix
 
     imageKeys.sort((a, b) => {
       const numA = parseInt(a.replace(/\D/g, ''), 10); // Extract number from key name
@@ -89,7 +92,7 @@ app.get(`${API_PREFIX}/images`, async (req, res) => {
     res.json(imageKeys.slice(0, maxKeys));
   } catch (err) {
     console.error("Error listing images:", err);
-    // Return empty array for testing/dev purposes
+    // Return empty array
     res.json([]);
   }
 });
@@ -109,7 +112,7 @@ app.get(`${API_PREFIX}/image-url`, async (req, res) => {
     }
     const params = {
       Bucket: bucket_name,
-      Key: key,
+      Key: 'gallery/' + key,
       Expires: 60 * 60, // seconds, set to one hour
     };
     const url = await getSignedUrl(s3Client, new GetObjectCommand(params));

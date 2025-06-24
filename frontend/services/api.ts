@@ -28,7 +28,7 @@ export async function fetchGalleryImages(maxKeys = 100): Promise<string[]> {
  * @param key Image key
  * @returns Object containing image URL and metadata
  */
-export async function fetchImageUrl(key: string): Promise<{ url: string; latitude?: number; longitude?: number }> {
+export async function fetchImageUrl(key: string): Promise<{ url: string }> {
   try {
     const response = await fetch(`${API_URL}/image-url?key=${key}`)
     if (!response.ok) {

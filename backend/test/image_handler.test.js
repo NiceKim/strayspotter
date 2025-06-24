@@ -1,9 +1,13 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+process.env.IS_TEST = true;
+console.log('testing with', process.env.IS_TEST ? 'test' : 'real' , "image_handler");
+
 const { processImageUpload } = require('../src/image_handler');
 const db = require('../src/db');
 const helper = require('../src/helper');
 const exifr = require('exifr');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
 
 jest.mock('../src/db', () => {
     const originalModule = jest.requireActual('../src/db');
@@ -22,7 +26,7 @@ jest.mock('exifr');
 
 async function clearTestDb(connection) {
   const sql = 'DELETE FROM pictures'
-  const [result] = await connection.promise().query(sql);
+  const [result] = await connection.query(sql);
   return result;
 }
 
@@ -61,12 +65,12 @@ describe('processImageUpload', () => {
     };
 
     beforeAll(() => {
-        connection = db.createDbConnection(true);
+        connection = db.pool;
     });
 
     afterAll(async () => {
         await clearTestDb(connection);
-        connection.end();
+        await db.pool.end();
     });
 
     beforeEach(() => {

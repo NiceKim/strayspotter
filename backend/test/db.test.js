@@ -1,7 +1,10 @@
-const { pool, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID, fetchGPSByID} = require('../src/db.js');
-const { CustomError } = require('../errors/CustomError')
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+process.env.IS_TEST = true;
+console.log('testing with', process.env.IS_TEST ? 'test' : 'real' , "db");
+
+const { pool, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID, fetchGPSByID} = require('../src/db.js');
+const { CustomError } = require('../errors/CustomError')
 
 const sampleData = {
   latitude : 1.31576,
@@ -12,8 +15,6 @@ const sampleData = {
   districtName : 'TestDistrict',
   catStatus : 'happy'
 };
-
-process.env.NODE_ENV = 'test';
 
 async function selectFunction(insertId) {
   const sql = 'SELECT * FROM pictures WHERE id = ?';
@@ -196,3 +197,7 @@ describe('fetchGPSByID',  () => {
   })
 
 })
+
+afterAll(async () => {
+  await pool.end();
+});

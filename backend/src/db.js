@@ -6,7 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // External Modules and Dependencies
 ///////////////////////////////////////////////////////////////////////////////////////
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 const axios = require('axios');
 const { postalData } = require('./postal_data.js');
 const { CustomError } = require('../errors/CustomError.js');
@@ -28,7 +28,7 @@ const { CustomError } = require('../errors/CustomError.js');
  */
 async function updateAccessToken(connection, token) {
   const query = `UPDATE tokens SET expire_date = ?, access_token = ? WHERE token_name = ?`;
-  const [results] = await connection.promise().query(
+  const [results] = await connection.query(
     query,
     [token.expire_date, token.access_token, token.token_name]
   );
@@ -45,7 +45,7 @@ async function updateAccessToken(connection, token) {
  */
 async function fetchAccessToken(connection, tokenName) {
   const query = `SELECT * FROM tokens WHERE token_name = ?`;
-  const [results] = await connection.promise().query(query,
+  const [results] = await connection.query(query,
     [tokenName]
   );
   if (results.length == 0) {
@@ -67,7 +67,7 @@ async function fetchAccessToken(connection, tokenName) {
  */
 async function saveAccessToken(connection, token) {
   const query =  `INSERT INTO tokens (token_name, expire_date, access_token) VALUES (?, ?, ?)`;
-  const [results] = await connection.promise().query(
+  const [results] = await connection.query(
     query, 
     [token.token_name, token.expire_date, token.access_token]
   );
@@ -143,7 +143,6 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0
 });
-const poolPromise = pool.promise();
 
 /**
  * Inserts picture metadata and additional data into the database.
@@ -166,7 +165,7 @@ async function insertDataToDb (connection, data) {
   const query = `INSERT INTO pictures
     (latitude, longitude, date_taken, postcode, district_no, district_name, cat_status) 
     VALUES (?, ?, ?, ?, ?, ?, ?)`;
-  const [result] = await connection.promise().query(
+  const [result] = await connection.query(
     query, 
     [data.latitude, data.longitude, data.date, data.postcode, data.districtNo, data.districtName, data.catStatus],
   );
@@ -191,7 +190,7 @@ async function insertDataToDb (connection, data) {
  */
 async function fetchByID(connection, id) {
   const query = `SELECT * FROM pictures WHERE id = ?`;
-  const [result] = await connection.promise().query(
+  const [result] = await connection.query(
     query,
     [id]
   );
@@ -261,7 +260,7 @@ async function getCurrentPictureCount(connection, districtNo) {
     query += ` WHERE district_no = ${districtNo}`;
   }
 
-  const [result] = await connection.promise().query(query);
+  const [result] = await connection.query(query);
   return {
     day: Number(result[0].day_count || 0),
     week: Number(result[0].week_count || 0),
@@ -293,7 +292,7 @@ async function getDailyPictureCount(connection, {startDate, endDate, statusFilte
     ORDER BY date_taken, district_no;
   `;
 
-  const [result] = await connection.promise().query(query, params);
+  const [result] = await connection.query(query, params);
   return result;
 }
 
@@ -320,7 +319,7 @@ async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'})
     ORDER BY year_week, district_no;
   `;
 
-  const [result] = await connection.promise().query(query, params);
+  const [result] = await connection.query(query, params);
   return result;
 }
 
@@ -332,7 +331,7 @@ async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'})
  */
 async function fetchAllDb(connection) {
   const query = `SELECT * FROM pictures;`;
-  const [results] = await connection.promise().query(query);
+  const [results] = await connection.query(query);
   return results;
 }
 
@@ -346,7 +345,7 @@ async function fetchAllDb(connection) {
  */
 async function deleteByID(connection, id) {
   const query = `DELETE FROM pictures WHERE id = ?`;
-  const [result] = await connection.promise().query(
+  const [result] = await connection.query(
     query,
     [id]
   );
@@ -372,7 +371,7 @@ async function fetchGPSByID(connection, id) {
     throw new CustomError("ID must be a number", 400);
   }
   const query = `SELECT latitude, longitude FROM pictures WHERE id = ?`;
-  const [result] = await connection.promise().query(
+  const [result] = await connection.query(
     query,
     [id]
   );
@@ -396,7 +395,7 @@ async function fetchGPSByID(connection, id) {
  */
 async function fetchRecentPhotoID(connection, photosToFetch = 4, photosToSkip = 0) {
   const query = `SELECT id FROM pictures ORDER BY id DESC LIMIT ? OFFSET ?`;
-  const [result] = await connection.promise().query(
+  const [result] = await connection.query(
     query,
     [photosToFetch, photosToSkip]
   );
@@ -414,5 +413,5 @@ module.exports = {
   fetchRecentPhotoID,
   deleteByID,
   fetchGPSByID,
-  pool: poolPromise
+  pool
 };

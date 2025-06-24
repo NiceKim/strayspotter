@@ -80,5 +80,5 @@ function validateMonthFormat(monthStr) {
 }
 
 module.exports = {
-  createReport,
+  createReport
 }

@@ -13,6 +13,7 @@ services:
     environment:
       - DB_HOST=db
       - DB_PORT=3306
+      # - NODE_ENV=production # uncomment for production
     volumes:
       - ./backend:/app
       - /app/node_modules
