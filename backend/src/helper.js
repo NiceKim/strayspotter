@@ -1,10 +1,9 @@
 // AWS S3 setup
-const { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand} = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const bucket_name = "strayspotter-bucket";
+const { S3Client, PutObjectCommand} = require('@aws-sdk/client-s3');
+const bucket_name = process.env.NODE_ENV === 'production' ? "strayspotter-prod-bucket" : "strayspotter-test-bucket";
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'ap-southeast-1',  // 환경변수가 없을 경우 기본값 사용
+  region: process.env.AWS_REGION || 'ap-southeast-1',  
   credentials: {
     accessKeyId: process.env.ACCESS_KEY_ID,
     secretAccessKey: process.env.SECRET_ACCESS_KEY_ID,
@@ -24,7 +23,7 @@ const s3Client = new S3Client({
 async function uploadToCloud(file) {
     const params = {
       Bucket: bucket_name,
-      Key: file.uniquename,
+      Key: 'gallery/' + file.uniquename,
       Body: file.buffer,
       ContentType: file.mimetype
     };

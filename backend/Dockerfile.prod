@@ -2,11 +2,11 @@
 FROM node:18
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install --production
 COPY . .
 
 # Expose the port the app runs on
 EXPOSE 3000
 
 # Command to run the application
-CMD ["npx", "nodemon", "src/server.js"]
+CMD ["node", "src/server.js"] 

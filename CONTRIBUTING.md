@@ -50,6 +50,23 @@ git checkout -b feature/user-auth
 
 ---
 
+## 🐳 Docker Setup
+
+### Development
+```bash
+docker-compose up --build
+```
+
+### Production
+```bash
+docker-compose -f docker-compose.prod.yml up --build
+```
+
+### Services in Docker Container
+- Backend API: http://localhost:3000
+- Frontend: http://localhost:3001
+- Database: localhost:3307
+
 ## ✅ Pull Request Guidelines
 
 - Use a commit-style title for your PR
@@ -60,4 +77,4 @@ git checkout -b feature/user-auth
 ---
 
 Thanks for your contribution! 🙌  
-Let’s keep the code clean and collaboration smooth.
+Let's keep the code clean and collaboration smooth.
