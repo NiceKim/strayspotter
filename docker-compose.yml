@@ -1,0 +1,63 @@
+services:
+  # Node.js backend service
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Next.js frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+    depends_on:
+      - app
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # MySQL database service
+  db:
+    image: mysql:8.4
+    ports:
+      - "3307:3306"
+    env_file:
+      - .env
+    environment:
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:
+    driver: bridge

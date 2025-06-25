@@ -1,0 +1,69 @@
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - NODE_ENV=production
+      - FRONT_ORIGIN
+      - HOST
+      - PORT
+      - SECOND_HOST
+      - SECOND_PORT
+      - DB_HOST
+      - DB_PORT
+      - DB_NAME
+      - DB_PASSWORD
+      - AWS_REGION
+      - AWS_ACCESS_KEY_ID
+      - SECRET_ACCESS_KEY_ID
+      - ONEMAP_API_EMAIL
+      - ONEMAP_API_PASSWORD
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_API_URL
+    depends_on:
+      - app
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    ports:
+      - "3307:3306"
+    env_file:
+      - .env
+    environment:
+      - MYSQL_DATABASE
+      - MYSQL_ROOT_PASSWORD
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:
+    driver: bridge 
