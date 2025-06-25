@@ -4,8 +4,7 @@
 // Express setup
 const express = require('express');
 const app = express();
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+require('dotenv').config();
 
 const HOST = process.env.HOST;
 const PORT = process.env.PORT;

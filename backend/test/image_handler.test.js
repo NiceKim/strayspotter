@@ -1,7 +1,5 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-process.env.IS_TEST = true;
-console.log('testing with', process.env.IS_TEST ? 'test' : 'real' , "image_handler");
+require('dotenv').config();
+console.log('testing with', process.env.DB_NAME, "db");
 
 const { processImageUpload } = require('../src/image_handler');
 const db = require('../src/db');

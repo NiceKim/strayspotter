@@ -1,7 +1,5 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-process.env.IS_TEST = true;
-console.log('testing with', process.env.IS_TEST ? 'test' : 'real' , "db");
+require('dotenv').config();
+console.log('testing with', process.env.DB_NAME, "db");
 
 const { pool, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID, fetchGPSByID} = require('../src/db.js');
 const { CustomError } = require('../errors/CustomError')

@@ -136,7 +136,7 @@ async function getValidToken(connection) {
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: 'root',
-  database: process.env.IS_TEST === "true" ? 'strayspotter_database_test' : 'strayspotter_database',
+  database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
   waitForConnections: true,

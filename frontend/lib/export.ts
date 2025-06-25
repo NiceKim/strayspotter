@@ -53,33 +53,33 @@ export function getDistrictRows(
   });
 }
 
-// rows 데이터를 CSV로 export하는 함수
+// Function to export rows data to CSV
 export function exportRowsToCSV(
   rows: Array<{ districtNumber: number, districtName: string, data: Record<string, number> }>,
   periods: string[],
   reportType: string,
   filename?: string
 ) {
-  // 헤더 생성
+  // Create Header
   const header = ['District #', 'District Name', ...periods, 'Total'];
-  // 각 row를 CSV로 변환
+  // Convert each row to CSV
   const csvRows = rows.map(row => {
     const periodCounts = periods.map(period => row.data[period] || 0);
     const total = periodCounts.reduce((a, b) => a + b, 0);
-    // districtName에 쉼표가 있을 수 있으니 "로 감싼다
+    // districtName could have comma, so we wrap it with "
     return [row.districtNumber, `"${row.districtName}"`, ...periodCounts, total].join(',');
   });
-  // Totals row 생성
+  // Creadte Totals row 
   const totalsByPeriod = periods.map(period => rows.reduce((sum, row) => sum + (row.data[period] || 0), 0));
   const totalsRow = ["Totals", "", ...totalsByPeriod, totalsByPeriod.reduce((a, b) => a + b, 0)].join(",");
-  // rows 아래에 totalsRow 추가
+  // adding Totals row 
   const csvContent = [header.join(','), ...csvRows, totalsRow].join('\n');
 
-  // 파일명 생성
+  // Create Filename
   const defaultFilename = `strayspotter-${reportType}-report-${new Date().toISOString().split('T')[0]}.csv`;
   const finalFilename = filename || defaultFilename;
 
-  // 다운로드 트리거
+  // Download Trigger
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   if (link.download !== undefined) {
