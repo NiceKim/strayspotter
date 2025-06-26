@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy package.json and package-lock.json files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install only production dependencies
+RUN npm ci --omit=dev
 
 # Copy the rest of the application
 COPY . .
@@ -18,11 +18,9 @@ RUN npm run build
 FROM node:18 AS runner
 WORKDIR /app
 
-# Copy package.json and package-lock.json files
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm install --production
+# Copy only production dependencies
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
 
 # Copy built application from builder stage
 COPY --from=builder /app/.next ./.next
@@ -34,4 +32,4 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 EXPOSE 3001
 
 # Command to run the application in production mode
-CMD ["npm", "start"] 
+CMD ["npm", "start"]
