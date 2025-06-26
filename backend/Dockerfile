@@ -9,4 +9,4 @@ COPY . .
 EXPOSE 3000
 
 # Command to run the application
-CMD ["npx", "nodemon", "src/server.js"]
+CMD ["npx", "nodemon", "-L", "src/server.js"]
