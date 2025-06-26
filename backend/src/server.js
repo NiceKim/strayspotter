@@ -11,14 +11,6 @@ const PORT = process.env.PORT;
 const SECOND_SERVER_HOST = process.env.SECOND_HOST;
 const SECOND_SERVER_PORT = process.env.SECOND_PORT;
 
-// Apply CORS middleware to allow frontend
-const cors = require('cors'); 
-app.use(cors({
-  origin: process.env.FRONT_ORIGIN, // Allow all origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow all methods
-  allowedHeaders: '*' // Allow all headers
-}));
-
 // Swagger doucumetation setup
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
@@ -26,13 +18,13 @@ const swaggerDocument = YAML.load('./swagger.yaml');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // To receive data from client
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const receiveImage = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 }).single('image');
 
 // Database and other services
