@@ -1,21 +1,23 @@
 services:
+  # Nginx reverse proxy service
   nginx:
-      image: nginx:alpine
-      ports:
-        - "80:80"
-      volumes:
-        - ./nginx.conf:/etc/nginx/nginx.conf
-      depends_on:
-        - frontend
-        - app
-      networks:
-        - app-network
-      restart: unless-stopped
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - app
+    networks:
+      - app-network
+    restart: unless-stopped
+
   # Node.js backend service
   app:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
     ports:
       - "3000"
     depends_on:
@@ -25,9 +27,20 @@ services:
     environment:
       - DB_HOST=db
       - DB_PORT=3306
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - NODE_ENV=production
+      - HOST
+      - PORT
+      - SECOND_HOST
+      - SECOND_PORT
+      - DB_HOST
+      - DB_PORT
+      - DB_NAME
+      - DB_PASSWORD
+      - AWS_REGION
+      - AWS_ACCESS_KEY_ID
+      - SECRET_ACCESS_KEY_ID
+      - ONEMAP_API_EMAIL
+      - ONEMAP_API_PASSWORD
     networks:
       - app-network
     restart: unless-stopped
@@ -36,14 +49,11 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
     ports:
       - "3001"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost/api
+      - NEXT_PUBLIC_API_URL
     depends_on:
       - app
     networks:
@@ -58,8 +68,8 @@ services:
     env_file:
       - .env
     environment:
-      - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE
+      - MYSQL_ROOT_PASSWORD
     volumes:
       - mysql-data:/var/lib/mysql
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -72,4 +82,4 @@ volumes:
 
 networks:
   app-network:
-    driver: bridge
+    driver: bridge 

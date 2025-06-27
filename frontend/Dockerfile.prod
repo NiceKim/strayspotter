@@ -1,35 +1,13 @@
-# Build stage
-FROM node:18 AS builder
+FROM node:18
+
 WORKDIR /app
 
-# Copy package.json and package-lock.json files
+# Install dependencies
 COPY package*.json ./
-
-# Install only production dependencies
 RUN npm ci --omit=dev
 
-# Copy the rest of the application
+# Copy built files (from host)
 COPY . .
 
-# Build the application
-RUN npm run build
-
-# Production stage
-FROM node:18 AS runner
-WORKDIR /app
-
-# Copy only production dependencies
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-
-# Copy built application from builder stage
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-
-# Expose the port the app runs on
 EXPOSE 3001
-
-# Command to run the application in production mode
 CMD ["npm", "start"]
