@@ -6,8 +6,8 @@ const express = require('express');
 const app = express();
 require('dotenv').config();
 
-const HOST = process.env.HOST;
-const PORT = process.env.PORT;
+const HOST = process.env.APP_HOST;
+const PORT = process.env.APP_PORT;
 const SECOND_SERVER_HOST = process.env.SECOND_HOST;
 const SECOND_SERVER_PORT = process.env.SECOND_PORT;
 

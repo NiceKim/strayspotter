@@ -2,17 +2,12 @@ FROM node:18
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json files
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install dependencies
-RUN npm install
+# COPY ONLY WHAT IS NEEDED
+COPY .next .next
+COPY public ./public
 
-# Copy the rest of the application
-COPY . .
-
-# Expose the port the app runs on
 EXPOSE 3001
-
-# Command to run the application in development mode
-CMD ["npm", "run", "dev"]
+CMD ["npm", "start"]

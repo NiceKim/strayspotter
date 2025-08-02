@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "dev": "dotenv -e ../.env nodemon src/server.js",
-    "dev-test": "dotenv -e ../.env cross-env DB_NAME=strayspotter_database_test nodemon src/server.js",
+    "dev": "dotenv -e ../.env node src/server.js",
+    "dev-test": "dotenv -e ../.env cross-env DB_NAME=strayspotter_database_test node src/server.js",
     "start": "dotenv -e ../.env node src/server.js",
     "test": "dotenv -e ../.env cross-env DB_NAME=strayspotter_database_test jest"
   },
