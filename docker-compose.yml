@@ -1,16 +1,18 @@
 services:
+  # Nginx reverse proxy service
   nginx:
-      image: nginx:alpine
-      ports:
-        - "80:80"
-      volumes:
-        - ./nginx.conf:/etc/nginx/nginx.conf
-      depends_on:
-        - frontend
-        - app
-      networks:
-        - app-network
-      restart: unless-stopped
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - app
+    networks:
+      - app-network
+    restart: unless-stopped
+
   # Node.js backend service
   app:
     build:
@@ -25,9 +27,7 @@ services:
     environment:
       - DB_HOST=db
       - DB_PORT=3306
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - NODE_ENV=production
     networks:
       - app-network
     restart: unless-stopped
@@ -39,11 +39,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3001"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost/api
+      - NEXT_PUBLIC_API_URL=/api
     depends_on:
       - app
     networks:
@@ -72,4 +69,4 @@ volumes:
 
 networks:
   app-network:
-    driver: bridge
+    driver: bridge 

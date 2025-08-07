@@ -1,0 +1,20 @@
+{
+  "name": "wasabi-hackerton-deploy",
+  "version": "1.0.0",
+  "description": "Wasabi Hackerton Project Deployment",
+  "scripts": {
+    "start": "docker-compose up --build",
+    "dev": "docker-compose -f docker-compose.dev.yml up -d"
+  },
+  "keywords": [
+    "docker",
+    "deployment",
+    "wasabi",
+    "hackerton"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 

@@ -1,18 +1,13 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json files
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application
 COPY . .
 
-# Expose the port the app runs on
-EXPOSE 3001
+RUN npm run build 
 
-# Command to run the application in development mode
-CMD ["npm", "run", "dev"]
+EXPOSE 3001
+CMD ["npm", "start"]

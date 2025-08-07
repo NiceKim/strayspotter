@@ -52,14 +52,14 @@ git checkout -b feature/user-auth
 
 ## 🐳 Docker Setup
 
-### Development
-```bash
-docker-compose up --build
-```
-
 ### Production
 ```bash
-docker-compose -f docker-compose.prod.yml up --build
+npm start
+```
+
+### Development
+```bash
+npm run dev
 ```
 
 ### Services in Docker Container
