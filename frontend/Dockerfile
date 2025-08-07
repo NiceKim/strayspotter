@@ -1,13 +1,13 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# COPY ONLY WHAT IS NEEDED
-COPY .next .next
-COPY public ./public
+COPY . .
+
+RUN npm run build 
 
 EXPOSE 3001
 CMD ["npm", "start"]
