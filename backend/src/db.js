@@ -8,6 +8,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 const mysql = require('mysql2/promise');
 const axios = require('axios');
+const bcrypt = require('bcrypt');
 const { postalData } = require('./postal_data.js');
 const { CustomError } = require('../errors/CustomError.js');
 
@@ -158,7 +159,7 @@ const pool = mysql.createPool({
  * 
  * @returns {Promise<number>} Resolves with the inserted record ID.
  */
-async function insertDataToDb (connection, data) {
+async function insertPictureToDb (connection, data) {
   if (!data.date) {
     data.date = new Date();
   } 
@@ -383,6 +384,27 @@ async function fetchGPSByID(connection, id) {
   return result[0];
 }
 
+/**
+ * Inserts anonymous user data into the post_anonymous table.
+ * 
+ * @param {Object} connection - The MySQL connection object
+ * @param {number} postId - The ID of the post/picture
+ * @param {string} anonymousNickname - The anonymous nickname
+ * @param {string} anonymousPassword - The plain text password (will be hashed)
+ * @returns {Promise<number>} The number of rows affected by the insertion
+ */
+async function insertAnonymousUserDataToDb(connection, postId, anonymousNickname, anonymousPassword) {
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(anonymousPassword, saltRounds);
+  
+  const query = `INSERT INTO post_anonymous (post_id, anonymous_nickname, anonymous_password_hash) VALUES (?, ?, ?)`;
+  const [result] = await connection.query(
+    query,
+    [postId, anonymousNickname, hashedPassword]
+  );
+  return result.affectedRows;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Unused Function
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -405,7 +427,7 @@ async function fetchRecentPhotoID(connection, photosToFetch = 4, photosToSkip = 
 }
 
 module.exports = {
-  insertDataToDb,
+  insertPictureToDb,
   fetchByID,
   reverseGeocode,
   getCurrentPictureCount,
@@ -415,5 +437,6 @@ module.exports = {
   fetchRecentPhotoID,
   deleteByID,
   fetchGPSByID,
+  insertAnonymousUserDataToDb,
   pool
 };

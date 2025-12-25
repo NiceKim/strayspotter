@@ -11,7 +11,7 @@ jest.mock('../src/db', () => {
     const originalModule = jest.requireActual('../src/db');
     return {
         ...originalModule,
-        insertDataToDb: jest.fn(),
+        insertPictureToDb: jest.fn(),
         reverseGeocode: jest.fn()
     }
 });
@@ -76,13 +76,13 @@ describe('processImageUpload', () => {
     });
 
     it('should handle picture upload with EXIF data correctly', async () => {
-        db.insertDataToDb.mockResolvedValue(mockID);
+        db.insertPictureToDb.mockResolvedValue(mockID);
         db.reverseGeocode.mockResolvedValue(mockAddress);
         exifr.parse.mockResolvedValue(mockMetadata);
         
         expect(await processImageUpload(connection, sampleFile, "happy")).toBe(mockID);
         expect(exifr.parse).toHaveBeenCalledWith(sampleFile.buffer);
-        expect(db.insertDataToDb).toHaveBeenCalledWith(connection, mockData);
+        expect(db.insertPictureToDb).toHaveBeenCalledWith(connection, mockData);
         expect(db.reverseGeocode).toHaveBeenCalledWith(connection, mockMetadata.latitude, mockMetadata.longitude);
         expect(helper.uploadToCloud).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -95,13 +95,13 @@ describe('processImageUpload', () => {
     });
 
      it('should handle picture upload without EXIF data correctly', async () => {
-        db.insertDataToDb.mockResolvedValue(mockID);
+        db.insertPictureToDb.mockResolvedValue(mockID);
         db.reverseGeocode.mockResolvedValue(mockAddress);
         exifr.parse.mockResolvedValue(null);
  
         expect(await processImageUpload(connection, sampleFile, "happy")).toBe(mockID);
         expect(exifr.parse).toHaveBeenCalledWith(sampleFile.buffer);
-        expect(db.insertDataToDb).toHaveBeenCalledWith(connection, {
+        expect(db.insertPictureToDb).toHaveBeenCalledWith(connection, {
             latitude: null,
             longitude: null,
             date: expect.any(Date),
@@ -122,7 +122,7 @@ describe('processImageUpload', () => {
     })
 
     it('should throw error for invalid file format', async () => {
-        db.insertDataToDb.mockResolvedValue(mockID);
+        db.insertPictureToDb.mockResolvedValue(mockID);
         db.reverseGeocode.mockResolvedValue(mockAddress);
         exifr.parse.mockResolvedValue(mockMetadata);
         const invalidFile = {

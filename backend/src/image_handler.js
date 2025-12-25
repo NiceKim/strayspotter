@@ -13,11 +13,13 @@ const path = require('path');
  * @param {Object} connection - MySQL database connection object
  * @param {Object} file - File object containing image data and mimetype
  * @param {string} status - Cat status label (e.g., "happy", "lost")
- * 
+ * @param {string} anonymousNickname - Nickname of the anonymous poster
+ * @param {string} anonymousPassword - Password of the anonymous poster
+ *
  * @returns {Promise<number>} The ID of the inserted picture record
  * @throws {Error} Throws if the image format is not accepted or cloud upload fails
  */
-async function processImageUpload(connection, file, status) {
+async function processImageUpload(connection, file, status, anonymousNickname, anonymousPassword) {
   const pictureData = {
     latitude : null,
     longitude : null,
@@ -27,6 +29,7 @@ async function processImageUpload(connection, file, status) {
     districtName : null,
     catStatus : status
   };
+
   try {
     // Extract metadata from picture
     const exifData = await exifr.parse(file.buffer);
@@ -43,13 +46,21 @@ async function processImageUpload(connection, file, status) {
   } catch (err) {
     console.error("Error getting the metadata:", err);
   }
-  const pictureID = await db.insertDataToDb(connection, pictureData);
-  let fileToUpload = {
+  
+  const pictureID = await db.insertPictureToDb(connection, pictureData);
+  
+    let fileToUpload = {
     buffer: file.buffer,
     mimetype: file.mimetype,
     originalname: file.originalname
   };
+  
   try {
+    // Save anonymous user data
+    if (anonymousNickname && anonymousPassword) {
+      await db.insertAnonymousUserDataToDb(connection, pictureID, anonymousNickname, anonymousPassword);
+    }
+    
     // Convert HEIC file to JPG for compatibility
     if (path.extname(file.originalname).toLowerCase() === ".heic") {
       fileToUpload = await convertHeicToJpg(fileToUpload);
@@ -61,7 +72,9 @@ async function processImageUpload(connection, file, status) {
       throw new Error("Not an accepted Image format");
     }
   } catch (error) {
-    db.deleteByID(connection, pictureID);
+    console.error("Error during upload process:", error);
+    // Delete already saved picture data
+    await db.deleteByID(connection, pictureID);
     throw error;
   }
   return pictureID;

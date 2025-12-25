@@ -209,12 +209,17 @@ app.get(`${API_PREFIX}/current-cat-count`, async (req, res) => {
 app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
   const file = req.file;
   const status = req.body.status;
+  const anonymousNickname = req.body.anonymousNickname;
+  const anonymousPassword = req.body.anonymousPassword;
+  if (!anonymousNickname || !anonymousPassword) {
+    return res.status(400).send('Anonymous nickname and password are required!');
+  }
   if (!file) {
     return res.status(400).send('No file selected!');
   }
   const pool = db.pool;
   try {
-    const result = await processImageUpload(pool,file, status);
+    const result = await processImageUpload(pool, file, status, anonymousNickname, anonymousPassword);
     console.log(`uploaded new picture ${result}`);
     res.status(200).send("Picture sucessfully uploaded");
   } catch (generalErr) {
