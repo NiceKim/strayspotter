@@ -166,7 +166,8 @@ export async function uploadImage(formData: FormData): Promise<UploadResponse> {
     })
 
     if (!response.ok) {
-      throw new Error("Failed to upload image")
+      const errorText = await response.text()
+      throw new Error(`Failed to upload image: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`)
     }
 
     const result = await response.text()

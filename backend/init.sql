@@ -12,6 +12,12 @@ CREATE TABLE IF NOT EXISTS pictures (
     cat_status VARCHAR(10)
 );
 
+CREATE TABLE IF NOT EXISTS post_anonymous (
+    post_id INT PRIMARY KEY,
+    anonymous_nickname VARCHAR(50),
+    anonymous_password_hash VARCHAR(255) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS tokens(
     token_name VARCHAR(10) PRIMARY KEY,
     access_token TEXT,

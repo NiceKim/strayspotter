@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { uploadImage } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDataRefresh } from "@/contexts/DataRefreshContext"
@@ -25,6 +26,10 @@ export default function UploadModal({
   const [selectedCategory, setSelectedCategory] = useState<string>("happy")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [anonymousNickname, setAnonymousNickname] = useState<string>("")
+  const [anonymousPassword, setAnonymousPassword] = useState<string>("")
+  // Always anonymous for now (no login system implemented)
+  const isAnonymous = true
   const { toast } = useToast()
   const { refreshData } = useDataRefresh()
 
@@ -36,6 +41,12 @@ export default function UploadModal({
     const formData = new FormData()
     formData.append("image", selectedFile)
     formData.append("status", selectedCategory)
+    
+    // Add anonymous user data (required for all uploads)
+    if (anonymousNickname && anonymousPassword) {
+      formData.append("anonymousNickname", anonymousNickname)
+      formData.append("anonymousPassword", anonymousPassword)
+    }
 
     try {
       setIsUploading(true)
@@ -123,10 +134,10 @@ export default function UploadModal({
                   )}
                 </label>
               </div>
-            </div>
+                         </div>
 
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-cat-brown">Cat Status</h3>
+             <div className="space-y-2">
+               <h3 className="text-lg font-semibold text-cat-brown">Cat Status</h3>
               <p className="text-sm text-gray-500">Please choose an icon that best matches your cat's condition</p>
 
               <RadioGroup
@@ -196,10 +207,45 @@ export default function UploadModal({
               </RadioGroup>
             </div>
 
+            {/* Anonymous User Section */}
+            <div className="space-y-4">
+               <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-cat-orange/20">
+                 <div className="space-y-2">
+                   <Label htmlFor="anonymousNickname" className="text-cat-brown font-medium">
+                     Anonymous Nickname *
+                   </Label>
+                   <Input
+                     id="anonymousNickname"
+                     type="text"
+                     value={anonymousNickname}
+                     onChange={(e) => setAnonymousNickname(e.target.value)}
+                     placeholder="Enter your nickname"
+                     className="border-cat-orange/30 focus:border-cat-orange"
+                     required
+                   />
+                 </div>
+                 
+                 <div className="space-y-2">
+                   <Label htmlFor="anonymousPassword" className="text-cat-brown font-medium">
+                     Password *
+                   </Label>
+                   <Input
+                     id="anonymousPassword"
+                     type="password"
+                     value={anonymousPassword}
+                     onChange={(e) => setAnonymousPassword(e.target.value)}
+                     placeholder="Enter your password"
+                     className="border-cat-orange/30 focus:border-cat-orange"
+                     required
+                   />
+                 </div>
+               </div>
+             </div>
+
             <Button
               type="submit"
               className="w-full bg-primary text-white hover:bg-primary/90 hover:scale-105 transition-all rounded-xl py-6 text-lg font-medium"
-              disabled={!selectedFile || !selectedCategory || isUploading}
+                             disabled={!selectedFile || !selectedCategory || isUploading || !anonymousNickname || !anonymousPassword}
             >
               {isUploading ? (
                 <div className="flex items-center justify-center">

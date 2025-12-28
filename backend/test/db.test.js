@@ -1,7 +1,7 @@
 require('dotenv').config();
 console.log('testing with', process.env.DB_NAME, "db");
 
-const { pool, insertDataToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID, fetchGPSByID} = require('../src/db.js');
+const { pool, insertPictureToDb, fetchByID, getCurrentPictureCount, fetchRecentPhotoID , reverseGeocode, deleteByID, fetchGPSByID} = require('../src/db.js');
 const { CustomError } = require('../errors/CustomError')
 
 const sampleData = {
@@ -26,7 +26,7 @@ async function clearTestDb() {
   return result;
 }
 
-describe('insertDatatoDb', () => {
+describe('insertPictureToDb', () => {
   const emptyData = {};
 
   afterAll(async () => {
@@ -34,7 +34,7 @@ describe('insertDatatoDb', () => {
   });
 
   it('should return insertID after inserting, and verify DB insert', async () => {
-    const result = await insertDataToDb(pool, sampleData);
+    const result = await insertPictureToDb(pool, sampleData);
     const check = await selectFunction(result);
 
     expect(typeof result).toBe('number');
@@ -42,7 +42,7 @@ describe('insertDatatoDb', () => {
   });
 
   it('should handle empty data', async () => {
-    const result = await insertDataToDb(pool, emptyData);
+    const result = await insertPictureToDb(pool, emptyData);
     const check = await selectFunction(result);
     expect(check[0].date_taken).toBeInstanceOf(Date);
     expect(check[0].latitude).toBe(null);
@@ -57,7 +57,7 @@ describe('fetchByID', () => {
   });
 
   it('should return object with valid information', async () => {
-    const testID = await insertDataToDb(pool, sampleData);
+    const testID = await insertPictureToDb(pool, sampleData);
     const {latitude, longitude} = await fetchByID(pool, testID);
     expect(latitude).toBe(sampleData.latitude);
     expect(longitude).toBe(sampleData.longitude);
@@ -75,10 +75,10 @@ describe('getCurrentPictureCount', () => {
     districtNo: 12
   };
   beforeAll(async () => {
-    await insertDataToDb(pool, mockData);
-    await insertDataToDb(pool, mockData);
+    await insertPictureToDb(pool, mockData);
+    await insertPictureToDb(pool, mockData);
     mockData.districtNo = 11;
-    await insertDataToDb(pool, mockData);
+    await insertPictureToDb(pool, mockData);
   });
   afterAll(async () => {
     await clearTestDb();
@@ -117,7 +117,7 @@ describe('fetchRecentPhotoID', () => {
 
   beforeAll(async () => {
     for (let i=0; i<5; i++) {
-      let insertId = await insertDataToDb(pool, sampleData);
+      let insertId = await insertPictureToDb(pool, sampleData);
       insertIds.push(insertId);
     }
   })
@@ -163,7 +163,7 @@ describe('deleteByID function', () => {
   })
 
   it('should delete the record by ID and return the number of affected rows', async () => {
-    const insertedID = await insertDataToDb(pool, sampleData);
+    const insertedID = await insertPictureToDb(pool, sampleData);
     const result = await deleteByID(pool, insertedID);
     expect(result).toBe(1);
   });
@@ -186,7 +186,7 @@ describe('fetchGPSByID',  () => {
     await expect(fetchGPSByID(pool, -1)).rejects.toThrow("Invalid ID")
   })
   it('should return gps data when record found', async () => {
-    const id = await insertDataToDb(pool, sampleData);
+    const id = await insertPictureToDb(pool, sampleData);
     const result = await fetchGPSByID(pool, id);
     expect(result).toEqual({
       latitude: sampleData.latitude,
