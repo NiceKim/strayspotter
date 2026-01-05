@@ -42,7 +42,7 @@ const { createReport } = require('./report');
 const API_PREFIX = '/api';
 const { S3Client, ListObjectsV2Command, GetObjectCommand} = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const bucket_name = process.env.NODE_ENV === 'production' ? "strayspotter-prod-bucket" : "strayspotter-test-bucket";
+const bucket_name = process.env.NODE_ENV === 'production' ? process.env.PROD_BUCKET : process.env.DEV_BUCKET
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-southeast-1',
