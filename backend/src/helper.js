@@ -1,6 +1,6 @@
 // AWS S3 setup
 const { S3Client, PutObjectCommand} = require('@aws-sdk/client-s3');
-const bucket_name = process.env.NODE_ENV === 'production' ? "strayspotter-prod-bucket" : "strayspotter-dev-bucket";
+const bucket_name = process.env.NODE_ENV === 'production' ? process.env.PROD_BUCKET : process.env.DEV_BUCKET
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-southeast-1',  
