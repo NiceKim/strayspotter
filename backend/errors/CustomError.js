@@ -5,4 +5,18 @@ class CustomError extends Error {
   }
 }
 
-module.exports = { CustomError };
+class ValidationError extends CustomError {
+  constructor(message = 'Validation error') {
+    super(message, 400);
+    this.name = 'ValidationError';
+  }
+}
+
+class NotFoundError extends CustomError {
+  constructor(message = 'Resource not found') {
+    super(message, 404);
+    this.name = 'NotFoundError';
+  }
+}
+
+module.exports = { CustomError, ValidationError, NotFoundError };
