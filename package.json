@@ -4,7 +4,7 @@
   "description": "Wasabi Hackerton Project Deployment",
   "scripts": {
     "start": "docker-compose up --build",
-    "dev": "docker-compose -f docker-compose.dev.yml up -d"
+    "dev": "docker-compose -f docker-compose.dev.yml up --build -d"
   },
   "keywords": [
     "docker",
