@@ -184,17 +184,6 @@ export async function uploadImage(formData: FormData): Promise<UploadResponse> {
   }
 }
 
-/**
- * Extracts the number of strays from a report string
- * @param reportText Report text containing numbers
- * @returns Total number of strays
- */
-export function extractStrayCount(reportText: string): number {
-  // Extract all numbers from the report text
-  const numbers = reportText.match(/\d+/g)
-  if (!numbers) return 0
-  return Number.parseInt(numbers[0], 10)
-}
 
 /**
  * Fetches GPS data by ID
