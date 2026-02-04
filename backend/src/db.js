@@ -385,7 +385,7 @@ async function fetchGPSByID(connection, id) {
 }
 
 /**
- * Inserts anonymous user data into the post_anonymous table.
+ * Inserts anonymous user data into the anonymous_post table.
  * 
  * @param {Object} connection - The MySQL connection object
  * @param {number} postId - The ID of the post/picture
@@ -397,7 +397,7 @@ async function insertAnonymousUserDataToDb(connection, postId, anonymousNickname
   const saltRounds = 10;
   const hashedPassword = await bcrypt.hash(anonymousPassword, saltRounds);
   
-  const query = `INSERT INTO post_anonymous (post_id, anonymous_nickname, anonymous_password_hash) VALUES (?, ?, ?)`;
+  const query = `INSERT INTO anonymous_posts (post_id, anonymous_nickname, anonymous_password_hash) VALUES (?, ?, ?)`;
   const [result] = await connection.query(
     query,
     [postId, anonymousNickname, hashedPassword]
