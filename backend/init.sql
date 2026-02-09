@@ -2,21 +2,88 @@ CREATE DATABASE IF NOT EXISTS strayspotter_database;
 USE strayspotter_database;
 
 CREATE TABLE IF NOT EXISTS pictures (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    post_id BIGINT NOT NULL,
     latitude FLOAT,
     longitude FLOAT,
-    date_taken DATE,
-    postcode INT,
+    date_taken DATETIME,
+    cat_status TINYINT(3),
     district_no INT,
-    district_name VARCHAR(50),
-    cat_status VARCHAR(10)
+
+    CONSTRAINT fk_pictures_post
+        FOREIGN KEY (post_id)
+        REFERENCES posts(id)
+        ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS post_anonymous (
-    post_id INT PRIMARY KEY,
-    anonymous_nickname VARCHAR(50),
-    anonymous_password_hash VARCHAR(255) NOT NULL
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT PRIMARY KEY,
+    account_id VARCHAR(20) UNIQUE,
+    nickname VARCHAR(20) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE,
+    joined_date TIMESTAMP NOT NULL,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+CREATE TABLE  IF NOT EXISTS posts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT DEFAULT NULL,
+    body TEXT,
+    created_at TIMESTAMP NOT NULL,
+
+    CONSTRAINT fk_posts_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
+)
+
+CREATE TABLE IF NOT EXISTS anonymous_posts (
+    post_id BIGINT PRIMARY KEY,
+    anonymous_nickname VARCHAR(20) NOT NULL,
+    anonymous_password_hash VARCHAR(255) NOT NULL,
+
+    CONSTRAINT fk_anonymous_post
+        FOREIGN KEY (post_id)
+        REFERENCES posts(id)
+        ON DELETE CASCADE
+)
+
+-- CREATE TABLE IF NOT EXISTS comments (
+--     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+--     user_id BIGINT NOT NULL,
+--     post_id BIGINT NOT NULL,
+--     body TEXT NOT NULL,
+--     created_at TIMESTAMP NOT NULL,
+
+--     CONSTRAINT fk_comments_user
+--         FOREIGN KEY (user_id)
+--         REFERENCES users(id)
+--         ON DELETE CASCADE,
+
+--     CONSTRAINT fk_comments_post
+--         FOREIGN KEY (post_id)
+--         REFERENCES posts(id)
+--         ON DELETE CASCADE
+-- );
+
+
+-- CREATE TABLE IF NOT EXISTS likes (
+--     user_id BIGINT NOT NULL,
+--     post_id BIGINT NOT NULL,
+
+--     PRIMARY KEY (user_id, post_id),
+
+--     CONSTRAINT fk_likes_user
+--         FOREIGN KEY (user_id)
+--         REFERENCES users(id)
+--         ON DELETE CASCADE,
+
+--     CONSTRAINT fk_likes_post
+--         FOREIGN KEY (post_id)
+--         REFERENCES posts(id)
+--         ON DELETE CASCADE
+-- )
 
 CREATE TABLE IF NOT EXISTS tokens(
     token_name VARCHAR(10) PRIMARY KEY,
