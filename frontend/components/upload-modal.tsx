@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { uploadImage } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDataRefresh } from "@/contexts/DataRefreshContext"
+import { categoryToStatus, type CatCategory } from "@/lib/utils"
 
 export default function UploadModal({
   isOpen,
@@ -23,7 +24,7 @@ export default function UploadModal({
   onClose: () => void
   onSuccess?: () => void
 }) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("happy")
+  const [selectedCategory, setSelectedCategory] = useState<CatCategory>("good")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [anonymousNickname, setAnonymousNickname] = useState<string>("")
@@ -40,7 +41,7 @@ export default function UploadModal({
 
     const formData = new FormData()
     formData.append("image", selectedFile)
-    formData.append("status", selectedCategory)
+    formData.append("status", categoryToStatus(selectedCategory).toString())
     
     // Add anonymous user data (required for all uploads)
     if (anonymousNickname && anonymousPassword) {
@@ -142,19 +143,19 @@ export default function UploadModal({
 
               <RadioGroup
                 value={selectedCategory}
-                onValueChange={setSelectedCategory}
+                onValueChange={(value) => setSelectedCategory(value as CatCategory)}
                 className="flex justify-center gap-4"
               >
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <RadioGroupItem value="happy" id="happy" className="sr-only" />
-                    <Label htmlFor="happy" className="cursor-pointer">
+                    <RadioGroupItem value="good" id="good" className="sr-only" />
+                    <Label htmlFor="good" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-green-200 transition-all ${selectedCategory === "happy" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-green-200 transition-all ${selectedCategory === "good" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/happy.png"
-                          alt="Happy cat"
+                          alt="Good"
                           width={60}
                           height={60}
                           className="h-full w-full object-cover p-2"
@@ -162,19 +163,19 @@ export default function UploadModal({
                       </div>
                     </Label>
                   </div>
-                  <span className="mt-1 text-xs font-medium">Happy</span>
+                  <span className="mt-1 text-xs font-medium">Good</span>
                 </div>
 
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <RadioGroupItem value="normal" id="normal" className="sr-only" />
-                    <Label htmlFor="normal" className="cursor-pointer">
+                    <RadioGroupItem value="concerned" id="concerned" className="sr-only" />
+                    <Label htmlFor="concerned" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-yellow-200 transition-all ${selectedCategory === "normal" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-yellow-200 transition-all ${selectedCategory === "concerned" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/worry.png"
-                          alt="Normal cat"
+                          alt="Concerned"
                           width={80}
                           height={80}
                           className="h-full w-full object-cover p-2"
@@ -182,19 +183,19 @@ export default function UploadModal({
                       </div>
                     </Label>
                   </div>
-                  <span className="mt-1 text-xs font-medium">Normal</span>
+                  <span className="mt-1 text-xs font-medium">Concerned</span>
                 </div>
 
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <RadioGroupItem value="sad" id="sad" className="sr-only" />
-                    <Label htmlFor="sad" className="cursor-pointer">
+                    <RadioGroupItem value="critical" id="critical" className="sr-only" />
+                    <Label htmlFor="critical" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-red-200 transition-all ${selectedCategory === "sad" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-red-200 transition-all ${selectedCategory === "critical" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/cry.png"
-                          alt="Sad cat"
+                          alt="Critical"
                           width={80}
                           height={80}
                           className="h-full w-full object-cover p-2"
@@ -202,7 +203,7 @@ export default function UploadModal({
                       </div>
                     </Label>
                   </div>
-                  <span className="mt-1 text-xs font-medium">Needs Help</span>
+                  <span className="mt-1 text-xs font-medium">Critical</span>
                 </div>
               </RadioGroup>
             </div>
@@ -245,7 +246,7 @@ export default function UploadModal({
             <Button
               type="submit"
               className="w-full bg-primary text-white hover:bg-primary/90 hover:scale-105 transition-all rounded-xl py-6 text-lg font-medium"
-                             disabled={!selectedFile || !selectedCategory || isUploading || !anonymousNickname || !anonymousPassword}
+                             disabled={!selectedFile || isUploading || !anonymousNickname || !anonymousPassword}
             >
               {isUploading ? (
                 <div className="flex items-center justify-center">

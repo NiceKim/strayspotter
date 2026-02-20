@@ -12,14 +12,14 @@ const path = require('path');
  *
  * @param {Object} connection - MySQL database connection object
  * @param {Object} file - File object containing image data and mimetype
- * @param {string} status - Cat status label (e.g., "happy", "lost")
+ * @param {number} catStatus - Cat status (0=good, 1=concerned, 2=critical). Must be validated before calling this function.
  * @param {string} anonymousNickname - Nickname of the anonymous poster
  * @param {string} anonymousPassword - Password of the anonymous poster
  *
  * @returns {Promise<number>} The ID of the inserted picture record
  * @throws {Error} Throws if the image format is not accepted or cloud upload fails
  */
-async function processImageUpload(connection, file, status, anonymousNickname, anonymousPassword) {
+async function processImageUpload(connection, file, catStatus, anonymousNickname, anonymousPassword) {
   const pictureData = {
     latitude : null,
     longitude : null,
@@ -27,7 +27,7 @@ async function processImageUpload(connection, file, status, anonymousNickname, a
     postcode : null, 
     districtNo : null,
     districtName : null,
-    catStatus : status
+    catStatus : catStatus
   };
 
   try {

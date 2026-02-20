@@ -121,7 +121,7 @@ app.get(`${API_PREFIX}/image-url`, async (req, res) => {
  * 
  * @param {Object} req.query - The query parameters
  * @param {'daily'|'monthly'} req.query.timeFrame - The type of report to generate
- * @param {string} [req.query.statusFilter] - Optional filter for cat status ('happy', 'normal', 'sad')
+ * @param {string} [req.query.statusFilter] - Optional filter for cat status ("0"=good, "1"=concerned, "2"=critical). If omitted, treated as "all".
  * @param {string} req.query.startDate - Required for daily reports: Start date in YYYY-MM-DD format
  * @param {string} req.query.endDate - Required for daily reports: End date in YYYY-MM-DD format
  * @param {string} req.query.month - Required for monthly reports: Month in YYYY-MM format
@@ -141,9 +141,15 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
     console.log('timeFrame must be either "daily" or "monthly"');
     return res.status(400).send('timeFrame must be either "daily" or "monthly"');
   }
-  if (statusFilter && !['happy', 'normal', 'sad'].includes(statusFilter)) {
-    console.log('statusFilter must be either "happy", "normal", or "sad"');
-    return res.status(400).send('statusFilter must be either "happy", "normal", or "sad"');
+
+  // Optional numeric status filter: "0" | "1" | "2" → 0 | 1 | 2
+  let numericStatusFilter;
+  if (statusFilter) {
+    numericStatusFilter = parseInt(statusFilter, 10);
+    if (isNaN(numericStatusFilter) || numericStatusFilter < 0 || numericStatusFilter > 2) {
+      console.log('statusFilter must be "0", "1", or "2" (or omitted for all)');
+      return res.status(400).send('statusFilter must be "0" (good), "1" (concerned), or "2" (critical)');
+    }
   }
   if (timeFrame === 'daily' && (!startDate || !endDate)) {
     console.log('startDate and endDate are required for daily reports');
@@ -155,7 +161,8 @@ app.get(`${API_PREFIX}/report`, async (req, res) => {
   }
 
   try {
-    let options = { statusFilter };
+    // Build options object; only include statusFilter when provided
+    let options = { statusFilter: numericStatusFilter };
     if (timeFrame === 'daily') {
       options = {
         ...options,
@@ -203,7 +210,7 @@ app.get(`${API_PREFIX}/current-cat-count`, async (req, res) => {
  * Handles file upload, processes EXIF data, and stores image metadata in the database.
  *
  * @param {object} req.file The uploaded file object, containing the image file data.
- * @param {string} req.body.status The category representing the cat's condition (e.g., "happy", "normal", "sad").
+ * @param {string} req.body.status The numeric status representing the cat's condition ("0"=good, "1"=concerned, "2"=critical).
  * @throws {Error} Throws an error if there is an issue during file upload, EXIF data parsing, or database insertion.
  */
 app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
@@ -211,20 +218,33 @@ app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
   const status = req.body.status;
   const anonymousNickname = req.body.anonymousNickname;
   const anonymousPassword = req.body.anonymousPassword;
+  
+  // Validate required fields
   if (!anonymousNickname || !anonymousPassword) {
     return res.status(400).send('Anonymous nickname and password are required!');
   }
   if (!file) {
     return res.status(400).send('No file selected!');
   }
+  if (!status) {
+    return res.status(400).send('Status is required!');
+  }
+  
+  // Convert and validate status
+  const catStatus = parseInt(status, 10);
+  if (isNaN(catStatus) || catStatus < 0 || catStatus > 2) {
+    return res.status(400).send('Invalid status. Must be 0 (good), 1 (concerned), or 2 (critical).');
+  }
+  
   const pool = db.pool;
   try {
-    const result = await processImageUpload(pool, file, status, anonymousNickname, anonymousPassword);
+    const result = await processImageUpload(pool, file, catStatus, anonymousNickname, anonymousPassword);
     console.log(`uploaded new picture ${result}`);
     res.status(200).send("Picture sucessfully uploaded");
   } catch (generalErr) {
     console.error("General error in upload:", generalErr);
-    res.status(400).send("File upload failed due to errors");
+    const errorMessage = generalErr.message || "File upload failed due to errors";
+    res.status(400).send(errorMessage);
   }
 });
 

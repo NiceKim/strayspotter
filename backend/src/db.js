@@ -185,7 +185,7 @@ async function insertPictureToDb (connection, data) {
  *   - {string} date_taken - Date when the picture was taken (YYYY-MM-DD format).
  *   - {number} postcode - Postcode of the location.
  *   - {number} district_no - Numeric district code.
- *   - {string} district_name - Name of the district (up to 20 characters).
+ 
  *   - {string} cat_status - Status of the cat (e.g., "stray", "owned").
  * @throws {Error} Throws an error if no data is found for the given ID.
  */
@@ -270,7 +270,7 @@ async function getCurrentPictureCount(connection, districtNo) {
 }
 
 
-async function getDailyPictureCount(connection, {startDate, endDate, statusFilter = 'all'}) {
+async function getDailyPictureCount(connection, {startDate, endDate, statusFilter}) {
   if (!startDate || !endDate) {
     throw new Error('Missing required parameter: startDate and endDate');
   }
@@ -285,9 +285,10 @@ async function getDailyPictureCount(connection, {startDate, endDate, statusFilte
     AND district_no IS NOT NULL
   `;
   const params = [startDate, endDate];
-  if (statusFilter !== 'all') {
+  // If statusFilter is provided (0, 1, 2), filter by cat_status. If undefined, do not filter.
+  if (statusFilter !== undefined) {
     query += ` AND cat_status = ?`;
-    params.push(statusFilter);
+    params.push(statusFilter); // statusFilter is a number (0, 1, or 2)
   }
   query += `
     GROUP BY date_taken, district_no
@@ -298,7 +299,7 @@ async function getDailyPictureCount(connection, {startDate, endDate, statusFilte
   return result;
 }
 
-async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'}) {
+async function getMonthlyPictureCount(connection, {month, statusFilter}) {
   if (!month) {
     throw new Error('Missing required parameter: month');
   }
@@ -313,9 +314,10 @@ async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'})
     WHERE YEAR(date_taken) = ? AND MONTH(date_taken) = ?
     AND district_no IS NOT NULL
   `;
-  if (statusFilter !== 'all') {
+  // If statusFilter is provided (0, 1, 2), filter by cat_status. If undefined, do not filter.
+  if (statusFilter !== undefined) {
     query += ` AND cat_status = ?`;
-    params.push(statusFilter);
+    params.push(statusFilter); // statusFilter is a number (0, 1, or 2)
   }
   query += `
     GROUP BY year_week, district_no
