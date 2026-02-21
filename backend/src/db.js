@@ -9,7 +9,7 @@
 const mysql = require('mysql2/promise');
 const axios = require('axios');
 const bcrypt = require('bcrypt');
-const { postalData } = require('./postal_data.js');
+const { postNumberToDistrictNo } = require('./postal_data.js');
 const { CustomError } = require('../errors/CustomError.js');
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -164,11 +164,11 @@ async function insertPictureToDb (connection, data) {
     data.date = new Date();
   } 
   const query = `INSERT INTO pictures
-    (latitude, longitude, date_taken, postcode, district_no, district_name, cat_status) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    (latitude, longitude, date_taken, district_no, cat_status) 
+    VALUES (?, ?, ?, ?, ?)`;
   const [result] = await connection.query(
     query, 
-    [data.latitude, data.longitude, data.date, data.postcode, data.districtNo, data.districtName, data.catStatus],
+    [data.latitude, data.longitude, data.date, data.districtNo, data.catStatus],
   );
   return result.insertId;
 }
@@ -183,9 +183,7 @@ async function insertPictureToDb (connection, data) {
  *   - {number} latitude - Latitude where the picture was taken.
  *   - {number} longitude - Longitude where the picture was taken.
  *   - {string} date_taken - Date when the picture was taken (YYYY-MM-DD format).
- *   - {number} postcode - Postcode of the location.
  *   - {number} district_no - Numeric district code.
- 
  *   - {string} cat_status - Status of the cat (e.g., "stray", "owned").
  * @throws {Error} Throws an error if no data is found for the given ID.
  */
@@ -208,10 +206,9 @@ async function fetchByID(connection, id) {
  * @param {number} latitude The latitude of the location.
  * @param {number} longitude The longitude of the location.
  * 
- * @returns {Promise<Object>} A Promise that resolves with an object with the following properties:
- *   - {string} postcode
- *   - {number} districtNo
- *   - {string} districtName
+ * @returns {number} The district number of the location.
+ *
+
  */
 async function reverseGeocode(connection, latitude, longitude) {
   if (!latitude || !longitude) {
@@ -222,14 +219,8 @@ async function reverseGeocode(connection, latitude, longitude) {
   const response = await axios.get(requestURL, {
     headers: { 'Authorization': token.access_token }
   });
-  const postcode = response.data.GeocodeInfo[0].POSTALCODE;     
-  const districtData = postalData[postcode.substring(0,2)];
-
-  return {
-    postcode: Number(postcode),
-    districtNo: districtData.districtNo,
-    districtName: districtData.districtName
-  };
+  const postcode = response.data.GeocodeInfo[0].POSTALCODE;
+  return postNumberToDistrictNo[postcode.substring(0, 2)];
 }
 
 /**

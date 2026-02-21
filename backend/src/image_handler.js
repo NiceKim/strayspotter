@@ -24,9 +24,7 @@ async function processImageUpload(connection, file, catStatus, anonymousNickname
     latitude : null,
     longitude : null,
     date : new Date(),
-    postcode : null, 
     districtNo : null,
-    districtName : null,
     catStatus : catStatus
   };
 
@@ -38,18 +36,17 @@ async function processImageUpload(connection, file, catStatus, anonymousNickname
       pictureData.longitude = exifData.longitude;
       pictureData.date = exifData.DateTimeOriginal;
       //Retrieve Address from GPS
-      const address = await db.reverseGeocode(connection, pictureData.latitude, pictureData.longitude);
-      pictureData.postcode = address.postcode;
-      pictureData.districtName = address.districtName;
-      pictureData.districtNo = address.districtNo;
+      const districtNo = await db.reverseGeocode(connection, pictureData.latitude, pictureData.longitude);
+      pictureData.districtNo = districtNo;
     }
   } catch (err) {
     console.error("Error getting the metadata:", err);
   }
   
   const pictureID = await db.insertPictureToDb(connection, pictureData);
+  console.log("Inserted picture to DB with ID:", pictureID);
   
-    let fileToUpload = {
+  let fileToUpload = {
     buffer: file.buffer,
     mimetype: file.mimetype,
     originalname: file.originalname
@@ -57,11 +54,9 @@ async function processImageUpload(connection, file, catStatus, anonymousNickname
   
   try {
     // Save anonymous user data
-    if (anonymousNickname && anonymousPassword) {
-      await db.insertAnonymousUserDataToDb(connection, pictureID, anonymousNickname, anonymousPassword);
-    }
-    
-    // Convert HEIC file to JPG for compatibility
+    // if (anonymousNickname && anonymousPassword) {
+    //   await db.insertAnonymousUserDataToDb(connection, pictureID, anonymousNickname, anonymousPassword);
+    // }
     if (path.extname(file.originalname).toLowerCase() === ".heic") {
       fileToUpload = await convertHeicToJpg(fileToUpload);
     }
@@ -73,8 +68,10 @@ async function processImageUpload(connection, file, catStatus, anonymousNickname
     }
   } catch (error) {
     console.error("Error during upload process:", error);
+    console.log("Deleting picture from DB with ID:", pictureID);
     // Delete already saved picture data
     await db.deleteByID(connection, pictureID);
+    console.log("Deleted picture from DB with ID:", pictureID);
     throw error;
   }
   return pictureID;
@@ -89,8 +86,7 @@ async function processImageUpload(connection, file, catStatus, anonymousNickname
 async function convertHeicToJpg(file) {
   const jpgBuffer = await heicConvert({
       buffer: file.buffer,
-      format: 'JPEG',
-      quality: 1, // Quality from 0 to 1
+      format: 'JPEG'
   });
   return {
     buffer : jpgBuffer,

@@ -229,8 +229,6 @@ app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
   if (!status) {
     return res.status(400).send('Status is required!');
   }
-  
-  // Convert and validate status
   const catStatus = parseInt(status, 10);
   if (isNaN(catStatus) || catStatus < 0 || catStatus > 2) {
     return res.status(400).send('Invalid status. Must be 0 (good), 1 (concerned), or 2 (critical).');
