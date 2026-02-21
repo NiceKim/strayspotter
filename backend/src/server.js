@@ -29,7 +29,7 @@ const receiveImage = multer({
 
 // Database and other services
 const db = require('./db');
-const { processImageUpload } = require('./image_handler')
+const { processImageUpload, uploadPost } = require('./image_handler')
 const { axios } = require('axios');
 const { CustomError } = require('../errors/CustomError.js');
 const { createReport } = require('./report');
@@ -216,12 +216,15 @@ app.get(`${API_PREFIX}/current-cat-count`, async (req, res) => {
 app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
   const file = req.file;
   const status = req.body.status;
+  const userId = req.body.userID;
   const anonymousNickname = req.body.anonymousNickname;
   const anonymousPassword = req.body.anonymousPassword;
   
   // Validate required fields
-  if (!anonymousNickname || !anonymousPassword) {
-    return res.status(400).send('Anonymous nickname and password are required!');
+  if (!userId) {
+    if (!anonymousNickname || !anonymousPassword) {
+      return res.status(400).send('Anonymous nickname and password are required!');
+    }
   }
   if (!file) {
     return res.status(400).send('No file selected!');
@@ -236,8 +239,9 @@ app.post(`${API_PREFIX}/upload`, receiveImage, async (req, res) => {
   
   const pool = db.pool;
   try {
-    const result = await processImageUpload(pool, file, catStatus, anonymousNickname, anonymousPassword);
-    console.log(`uploaded new picture ${result}`);
+    const pictureId = await processImageUpload(pool, file, catStatus);
+    const uploadPostResult = await uploadPost(pool, pictureId, userId, anonymousNickname, anonymousPassword);
+    console.log(`uploaded new post ${uploadPostResult}`);
     res.status(200).send("Picture sucessfully uploaded");
   } catch (generalErr) {
     console.error("General error in upload:", generalErr);
@@ -279,7 +283,7 @@ app.get(`${API_PREFIX}/classification/:id`, async (req, res) => {
 app.get(`${API_PREFIX}/gps/:id`, async (req, res) => {
   const pool = db.pool;
   try {
-    const {latitude, longitude} = await db.fetchGPSByID(pool, req.params.id);
+    const {latitude, longitude} = await db.fetchGPSById(pool, req.params.id);
     res.json({latitude, longitude});
   } catch (err) {
     const status = err instanceof CustomError ? err.statusCode : 500

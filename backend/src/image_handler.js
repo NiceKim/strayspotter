@@ -13,13 +13,11 @@ const path = require('path');
  * @param {Object} connection - MySQL database connection object
  * @param {Object} file - File object containing image data and mimetype
  * @param {number} catStatus - Cat status (0=good, 1=concerned, 2=critical). Must be validated before calling this function.
- * @param {string} anonymousNickname - Nickname of the anonymous poster
- * @param {string} anonymousPassword - Password of the anonymous poster
  *
  * @returns {Promise<number>} The ID of the inserted picture record
  * @throws {Error} Throws if the image format is not accepted or cloud upload fails
  */
-async function processImageUpload(connection, file, catStatus, anonymousNickname, anonymousPassword) {
+async function processImageUpload(connection, file, catStatus) {
   const pictureData = {
     latitude : null,
     longitude : null,
@@ -42,40 +40,43 @@ async function processImageUpload(connection, file, catStatus, anonymousNickname
   } catch (err) {
     console.error("Error getting the metadata:", err);
   }
-  
-  const pictureID = await db.insertPictureToDb(connection, pictureData);
-  console.log("Inserted picture to DB with ID:", pictureID);
-  
-  let fileToUpload = {
-    buffer: file.buffer,
-    mimetype: file.mimetype,
-    originalname: file.originalname
-  };
-  
+
+  const pictureId = await db.insertPictureToDb(connection, pictureData);
+ 
   try {
-    // Save anonymous user data
-    // if (anonymousNickname && anonymousPassword) {
-    //   await db.insertAnonymousUserDataToDb(connection, pictureID, anonymousNickname, anonymousPassword);
-    // }
+    let fileToUpload = {
+      buffer: file.buffer,
+      mimetype: file.mimetype,
+      originalname: file.originalname
+    };
+
     if (path.extname(file.originalname).toLowerCase() === ".heic") {
       fileToUpload = await convertHeicToJpg(fileToUpload);
     }
     if (fileToUpload.mimetype.startsWith('image/')) {
-      fileToUpload.uniquename = 'k' + pictureID + path.extname(file.originalname);
+      fileToUpload.uniquename = 'k' + pictureId + path.extname(file.originalname);
       await helper.uploadToCloud(fileToUpload);
     } else {
       throw new Error("Not an accepted Image format");
     }
   } catch (error) {
     console.error("Error during upload process:", error);
-    console.log("Deleting picture from DB with ID:", pictureID);
-    // Delete already saved picture data
-    await db.deleteByID(connection, pictureID);
-    console.log("Deleted picture from DB with ID:", pictureID);
+    console.log("Deleting picture from DB with ID:", pictureId);
+    await db.deleteById(connection, pictureId);
+    console.log("Deleted picture from DB with ID:", pictureId);
     throw error;
   }
-  return pictureID;
+  return pictureId;
 }
+
+async function uploadPost(connection, pictureId, userId, anonymousNickname, anonymousPassword) {
+  const postId = await db.insertPostToDb(connection, pictureId, userId); 
+  if(!userId) {
+    await db.insertAnonymousUserDataToDb(connection, postId, anonymousNickname, anonymousPassword);
+  }
+    return postId;
+}
+   
 
 /**
  * Converts a HEIC image buffer to a JPEG image buffer.
@@ -97,5 +98,6 @@ async function convertHeicToJpg(file) {
 
 
 module.exports = {
-  processImageUpload
+  processImageUpload,
+  uploadPost
 };

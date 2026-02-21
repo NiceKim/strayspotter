@@ -157,7 +157,7 @@ const pool = mysql.createPool({
  *   - {string} districtNo - District number.
  *   - {string} districtName - District name.
  * 
- * @returns {Promise<number>} Resolves with the inserted record ID.
+ * @returns {Promise<number>} Resolves with the inserted record Id.
  */
 async function insertPictureToDb (connection, data) {
   if (!data.date) {
@@ -174,10 +174,10 @@ async function insertPictureToDb (connection, data) {
 }
 
 /**
- * Fetches all metadata of a picture based on the provided ID.
+ * Fetches all metadata of a picture based on the provided Id.
  * 
  * @param {Object} connection - The MySQL connection object.
- * @param {number} id - The ID of the picture whose metadata is to be fetched.
+ * @param {number} id - The Id of the picture whose metadata is to be fetched.
  * @returns {Promise<Object>} A Promise that resolves with an object containing:
  *   - {number} id - Unique identifier of the picture.
  *   - {number} latitude - Latitude where the picture was taken.
@@ -185,9 +185,9 @@ async function insertPictureToDb (connection, data) {
  *   - {string} date_taken - Date when the picture was taken (YYYY-MM-DD format).
  *   - {number} district_no - Numeric district code.
  *   - {string} cat_status - Status of the cat (e.g., "stray", "owned").
- * @throws {Error} Throws an error if no data is found for the given ID.
+ * @throws {Error} Throws an error if no data is found for the given Id.
  */
-async function fetchByID(connection, id) {
+async function fetchById(connection, id) {
   const query = `SELECT * FROM pictures WHERE id = ?`;
   const [result] = await connection.query(
     query,
@@ -339,7 +339,7 @@ async function fetchAllDb(connection) {
  * 
  * @returns {Promise<number>} The number of rows affected by the deletion. If no rows are deleted, 0 is returned.
  */
-async function deleteByID(connection, id) {
+async function deleteById(connection, id) {
   const query = `DELETE FROM pictures WHERE id = ?`;
   const [result] = await connection.query(
     query,
@@ -359,7 +359,7 @@ async function deleteByID(connection, id) {
  * @throws {CustomError} Throws a CustomError with status 400 if ID is missing or not a number.
  * @throws {CustomError} Throws a CustomError with status 404 if no record found for the given ID.
  */
-async function fetchGPSByID(connection, id) {
+async function fetchGPSById(connection, id) {
   if (!id) {
     throw new CustomError("ID parameter missing", 400)
   }
@@ -372,9 +372,27 @@ async function fetchGPSByID(connection, id) {
     [id]
   );
   if (result.length === 0) {
-    throw new CustomError("Invalid ID", 404)
+    throw new CustomError("Invalid Id", 404)
   }
   return result[0];
+}
+
+
+/**
+ * Inserts a new post into the posts table.
+ * 
+ * @param {Object} connection - The MySQL connection object
+ * @param {number} pictureId - The Id of the picture
+ * @param {number} userId - The Id of the user
+ * @returns {Promise<number>} The number of rows affected by the insertion
+ */
+async function insertPostToDb(connection, pictureId, userId) {
+    const query = `INSERT INTO posts (picture_id, user_id) VALUES (?, ?)`;
+  const [result] = await connection.query(
+    query,
+    [pictureId, userId]
+  );
+  return result.insertId;
 }
 
 /**
@@ -410,7 +428,7 @@ async function insertAnonymousUserDataToDb(connection, postId, anonymousNickname
  * @param {number} photosToSkip The number of photo IDs to skip
  * @returns {Promise<Object[]>} - A promise that resolves with an array of results, each containing a photo ID.
  */
-async function fetchRecentPhotoID(connection, photosToFetch = 4, photosToSkip = 0) {
+async function fetchRecentPhotoId(connection, photosToFetch = 4, photosToSkip = 0) {
   const query = `SELECT id FROM pictures ORDER BY id DESC LIMIT ? OFFSET ?`;
   const [result] = await connection.query(
     query,
@@ -421,15 +439,16 @@ async function fetchRecentPhotoID(connection, photosToFetch = 4, photosToSkip = 
 
 module.exports = {
   insertPictureToDb,
-  fetchByID,
+  insertPostToDb,
+  insertAnonymousUserDataToDb,
+  fetchById,
   reverseGeocode,
   getCurrentPictureCount,
   getDailyPictureCount,
   getMonthlyPictureCount,
   fetchAllDb,
-  fetchRecentPhotoID,
-  deleteByID,
-  fetchGPSByID,
-  insertAnonymousUserDataToDb,
+  fetchRecentPhotoId,
+  deleteById,
+  fetchGPSById,
   pool
 };
