@@ -1,21 +1,6 @@
 CREATE DATABASE IF NOT EXISTS strayspotter_database;
 USE strayspotter_database;
 
-CREATE TABLE IF NOT EXISTS pictures (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    post_id BIGINT NOT NULL,
-    latitude FLOAT,
-    longitude FLOAT,
-    date_taken DATETIME,
-    cat_status TINYINT(3),
-    district_no INT,
-
-    CONSTRAINT fk_pictures_post
-        FOREIGN KEY (post_id)
-        REFERENCES posts(id)
-        ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT PRIMARY KEY,
     account_id VARCHAR(20) UNIQUE,
@@ -36,7 +21,23 @@ CREATE TABLE  IF NOT EXISTS posts (
         FOREIGN KEY (user_id)
         REFERENCES users(id)
         ON DELETE SET NULL
-)
+);
+
+CREATE TABLE IF NOT EXISTS pictures (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    post_id BIGINT NOT NULL,
+    latitude FLOAT,
+    longitude FLOAT,
+    date_taken DATETIME,
+    cat_status TINYINT(3),
+    district_no INT,
+
+    CONSTRAINT fk_pictures_post
+        FOREIGN KEY (post_id)
+        REFERENCES posts(id)
+        ON DELETE CASCADE
+);
+
 
 CREATE TABLE IF NOT EXISTS anonymous_posts (
     post_id BIGINT PRIMARY KEY,
@@ -47,7 +48,7 @@ CREATE TABLE IF NOT EXISTS anonymous_posts (
         FOREIGN KEY (post_id)
         REFERENCES posts(id)
         ON DELETE CASCADE
-)
+);
 
 -- CREATE TABLE IF NOT EXISTS comments (
 --     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -83,7 +84,7 @@ CREATE TABLE IF NOT EXISTS anonymous_posts (
 --         FOREIGN KEY (post_id)
 --         REFERENCES posts(id)
 --         ON DELETE CASCADE
--- )
+-- );
 
 CREATE TABLE IF NOT EXISTS tokens(
     token_name VARCHAR(10) PRIMARY KEY,
