@@ -29,7 +29,7 @@ const postNumberToDistrictNo = {
   '79': 28, '80': 28
 };
 
-const NumbertoName = { 
+const NumbertoName = {
   1: 'Raffles Place, Cecil, Marina, People\'s Park',
   2: 'Anson, Tanjong Pagar',
   3: 'Queenstown, Tiong Bahru',
@@ -57,7 +57,7 @@ const NumbertoName = {
   25: 'Kranji, Woodgrove',
   26: 'Upper Thomson, Springleaf',
   27: 'Yishun, Sembawang',
-  28: 'Seletar'  
+  28: 'Seletar'
 };
 
 module.exports = { postNumberToDistrictNo, NumbertoName };

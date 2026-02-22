@@ -1,7 +1,8 @@
 // require essentials & modules
-require('dotenv').config({ path: '../.env' }) 
-const db = require('./db.js');
-const helper = require('./helper.js');
+require('dotenv').config({ path: '../.env' });
+const db = require('../db/index.js');
+const s3Service = require('./s3Service.js');
+const oneMap = require('../lib/oneMap.js');
 const exifr = require('exifr');
 const heicConvert = require('heic-convert');
 const path = require('path');
@@ -33,9 +34,12 @@ async function processImageUpload(connection, file, catStatus) {
       pictureData.latitude = exifData.latitude;
       pictureData.longitude = exifData.longitude;
       pictureData.date = exifData.DateTimeOriginal;
-      //Retrieve Address from GPS
-      const districtNo = await db.reverseGeocode(connection, pictureData.latitude, pictureData.longitude);
-      pictureData.districtNo = districtNo;
+      const token = await db.getValidToken(connection);
+      pictureData.districtNo = await oneMap.reverseGeocode(
+        token.access_token,
+        pictureData.latitude,
+        pictureData.longitude
+      );
     }
   } catch (err) {
     console.error("Error getting the metadata:", err);
@@ -55,7 +59,7 @@ async function processImageUpload(connection, file, catStatus) {
     }
     if (fileToUpload.mimetype.startsWith('image/')) {
       fileToUpload.uniquename = 'k' + pictureId + path.extname(file.originalname);
-      await helper.uploadToCloud(fileToUpload);
+      await s3Service.uploadToCloud(fileToUpload);
     } else {
       throw new Error("Not an accepted Image format");
     }
@@ -68,15 +72,6 @@ async function processImageUpload(connection, file, catStatus) {
   }
   return pictureId;
 }
-
-async function uploadPost(connection, pictureId, userId, anonymousNickname, anonymousPassword) {
-  const postId = await db.insertPostToDb(connection, pictureId, userId); 
-  if(!userId) {
-    await db.insertAnonymousUserDataToDb(connection, postId, anonymousNickname, anonymousPassword);
-  }
-    return postId;
-}
-   
 
 /**
  * Converts a HEIC image buffer to a JPEG image buffer.
@@ -98,6 +93,5 @@ async function convertHeicToJpg(file) {
 
 
 module.exports = {
-  processImageUpload,
-  uploadPost
+  processImageUpload
 };
