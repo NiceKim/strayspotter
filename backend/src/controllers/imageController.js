@@ -1,8 +1,6 @@
-const express = require('express');
-const router = express.Router();
 const s3Service = require('../services/s3Service');
 
-router.get('/images', async (req, res) => {
+async function listImages(req, res) {
   const maxKeys = parseInt(req.query.maxKeys, 10) || 100;
   try {
     const imageKeys = await s3Service.listImageKeys(maxKeys);
@@ -11,9 +9,9 @@ router.get('/images', async (req, res) => {
     console.error('Error listing images:', err);
     res.json([]);
   }
-});
+}
 
-router.get('/image-url', async (req, res) => {
+async function getImageUrl(req, res) {
   const { key } = req.query;
   try {
     if (!key) return res.status(400).send('Key is required');
@@ -23,6 +21,9 @@ router.get('/image-url', async (req, res) => {
     console.error('Error during getting image-url:', error);
     res.json({ url: `https://example.com/${key}` });
   }
-});
+}
 
-module.exports = router;
+module.exports = {
+  listImages,
+  getImageUrl
+};

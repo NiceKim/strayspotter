@@ -1,13 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const multer = require('multer');
 const db = require('../db');
 const { processImageUpload } = require('../services/image_handler');
 
-const storage = multer.memoryStorage();
-const receiveImage = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('image');
-
-router.post('/upload', receiveImage, async (req, res) => {
+async function uploadImage(req, res) {
   const file = req.file;
   const status = req.body.status;
   const userId = req.body.userID;
@@ -37,6 +31,8 @@ router.post('/upload', receiveImage, async (req, res) => {
     console.error('General error in upload:', err);
     res.status(400).send(err.message || 'File upload failed due to errors');
   }
-});
+}
 
-module.exports = router;
+module.exports = {
+  uploadImage
+};

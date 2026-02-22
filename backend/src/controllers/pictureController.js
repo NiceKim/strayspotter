@@ -1,5 +1,3 @@
-const express = require('express');
-const router = express.Router();
 const axios = require('axios');
 const db = require('../db');
 const { createReport } = require('../services/report');
@@ -8,7 +6,7 @@ const { CustomError } = require('../../errors/CustomError');
 const SECOND_SERVER_HOST = process.env.SECOND_HOST;
 const SECOND_SERVER_PORT = process.env.SECOND_PORT;
 
-router.get('/report', async (req, res) => {
+async function getReport(req, res) {
   const pool = db.pool;
   const { timeFrame, statusFilter, startDate, endDate, month } = req.query;
 
@@ -42,9 +40,9 @@ router.get('/report', async (req, res) => {
     console.error('Report generation error:', err);
     res.status(500).json('Report generation failed');
   }
-});
+}
 
-router.get('/current-cat-count', async (req, res) => {
+async function getCurrentCatCount(req, res) {
   try {
     const reportData = await db.getCurrentPictureCount(db.pool, 0);
     res.json(reportData);
@@ -52,9 +50,9 @@ router.get('/current-cat-count', async (req, res) => {
     console.error('Report generation error:', err);
     res.status(500).json('Report generation failed');
   }
-});
+}
 
-router.get('/classification/:id', async (req, res) => {
+async function getClassification(req, res) {
   const requestURL = `http://${SECOND_SERVER_HOST}:${SECOND_SERVER_PORT}/classification/${req.params.id}`;
   try {
     const response = await axios.get(requestURL);
@@ -63,9 +61,9 @@ router.get('/classification/:id', async (req, res) => {
     console.log('Classification server error:', error);
     res.json({ isCat: true });
   }
-});
+}
 
-router.get('/gps/:id', async (req, res) => {
+async function getGps(req, res) {
   try {
     const { latitude, longitude } = await db.fetchGPSById(db.pool, req.params.id);
     res.json({ latitude, longitude });
@@ -73,6 +71,11 @@ router.get('/gps/:id', async (req, res) => {
     const status = err instanceof CustomError ? err.statusCode : 500;
     res.status(status).json({ error: err.message });
   }
-});
+}
 
-module.exports = router;
+module.exports = {
+  getReport,
+  getCurrentCatCount,
+  getClassification,
+  getGps
+};

@@ -6,12 +6,12 @@
 const express = require('express');
 const router = express.Router();
 
-const galleryRouter = require('./gallery');
-const postRouter = require('./post');
-const picturesRouter = require('./pictures');
+const imageRouter = require('./imageRoutes');
+const pictureRouter = require('./pictureRoutes');
+const postRouter = require('./postRoutes');
 
-router.use(galleryRouter);
+router.use(imageRouter);
+router.use(pictureRouter);
 router.use(postRouter);
-router.use(picturesRouter);
 
 module.exports = router;
