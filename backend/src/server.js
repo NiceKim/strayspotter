@@ -279,9 +279,11 @@ app.get("/health", (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error('Global error handler caught:', err);
-  res.status(200).json({
-    message: "Operation completed with errors, but proceeded anyway",
-    error: err.message
+
+  const statusCode = err.status || 500;
+
+  res.status(statusCode).json({
+    message: err.expose ? err.message : 'Internal Server Error',
   });
 });
 
