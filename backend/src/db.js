@@ -9,7 +9,7 @@
 const mysql = require('mysql2/promise');
 const axios = require('axios');
 const bcrypt = require('bcrypt');
-const { postalData } = require('./postal_data.js');
+const { postNumberToDistrictNo } = require('./postal_data.js');
 const { CustomError } = require('../errors/CustomError.js');
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -157,39 +157,37 @@ const pool = mysql.createPool({
  *   - {string} districtNo - District number.
  *   - {string} districtName - District name.
  * 
- * @returns {Promise<number>} Resolves with the inserted record ID.
+ * @returns {Promise<number>} Resolves with the inserted record Id.
  */
 async function insertPictureToDb (connection, data) {
   if (!data.date) {
     data.date = new Date();
   } 
   const query = `INSERT INTO pictures
-    (latitude, longitude, date_taken, postcode, district_no, district_name, cat_status) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    (latitude, longitude, date_taken, district_no, cat_status) 
+    VALUES (?, ?, ?, ?, ?)`;
   const [result] = await connection.query(
     query, 
-    [data.latitude, data.longitude, data.date, data.postcode, data.districtNo, data.districtName, data.catStatus],
+    [data.latitude, data.longitude, data.date, data.districtNo, data.catStatus],
   );
   return result.insertId;
 }
 
 /**
- * Fetches all metadata of a picture based on the provided ID.
+ * Fetches all metadata of a picture based on the provided Id.
  * 
  * @param {Object} connection - The MySQL connection object.
- * @param {number} id - The ID of the picture whose metadata is to be fetched.
+ * @param {number} id - The Id of the picture whose metadata is to be fetched.
  * @returns {Promise<Object>} A Promise that resolves with an object containing:
  *   - {number} id - Unique identifier of the picture.
  *   - {number} latitude - Latitude where the picture was taken.
  *   - {number} longitude - Longitude where the picture was taken.
  *   - {string} date_taken - Date when the picture was taken (YYYY-MM-DD format).
- *   - {number} postcode - Postcode of the location.
  *   - {number} district_no - Numeric district code.
- *   - {string} district_name - Name of the district (up to 20 characters).
  *   - {string} cat_status - Status of the cat (e.g., "stray", "owned").
- * @throws {Error} Throws an error if no data is found for the given ID.
+ * @throws {Error} Throws an error if no data is found for the given Id.
  */
-async function fetchByID(connection, id) {
+async function fetchById(connection, id) {
   const query = `SELECT * FROM pictures WHERE id = ?`;
   const [result] = await connection.query(
     query,
@@ -208,10 +206,9 @@ async function fetchByID(connection, id) {
  * @param {number} latitude The latitude of the location.
  * @param {number} longitude The longitude of the location.
  * 
- * @returns {Promise<Object>} A Promise that resolves with an object with the following properties:
- *   - {string} postcode
- *   - {number} districtNo
- *   - {string} districtName
+ * @returns {number} The district number of the location.
+ *
+
  */
 async function reverseGeocode(connection, latitude, longitude) {
   if (!latitude || !longitude) {
@@ -222,14 +219,8 @@ async function reverseGeocode(connection, latitude, longitude) {
   const response = await axios.get(requestURL, {
     headers: { 'Authorization': token.access_token }
   });
-  const postcode = response.data.GeocodeInfo[0].POSTALCODE;     
-  const districtData = postalData[postcode.substring(0,2)];
-
-  return {
-    postcode: Number(postcode),
-    districtNo: districtData.districtNo,
-    districtName: districtData.districtName
-  };
+  const postcode = response.data.GeocodeInfo[0].POSTALCODE;
+  return postNumberToDistrictNo[postcode.substring(0, 2)];
 }
 
 /**
@@ -270,7 +261,7 @@ async function getCurrentPictureCount(connection, districtNo) {
 }
 
 
-async function getDailyPictureCount(connection, {startDate, endDate, statusFilter = 'all'}) {
+async function getDailyPictureCount(connection, {startDate, endDate, statusFilter}) {
   if (!startDate || !endDate) {
     throw new Error('Missing required parameter: startDate and endDate');
   }
@@ -285,9 +276,10 @@ async function getDailyPictureCount(connection, {startDate, endDate, statusFilte
     AND district_no IS NOT NULL
   `;
   const params = [startDate, endDate];
-  if (statusFilter !== 'all') {
+  // If statusFilter is provided (0, 1, 2), filter by cat_status. If undefined, do not filter.
+  if (statusFilter !== undefined) {
     query += ` AND cat_status = ?`;
-    params.push(statusFilter);
+    params.push(statusFilter); // statusFilter is a number (0, 1, or 2)
   }
   query += `
     GROUP BY date_taken, district_no
@@ -298,7 +290,7 @@ async function getDailyPictureCount(connection, {startDate, endDate, statusFilte
   return result;
 }
 
-async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'}) {
+async function getMonthlyPictureCount(connection, {month, statusFilter}) {
   if (!month) {
     throw new Error('Missing required parameter: month');
   }
@@ -313,9 +305,10 @@ async function getMonthlyPictureCount(connection, {month, statusFilter = 'all'})
     WHERE YEAR(date_taken) = ? AND MONTH(date_taken) = ?
     AND district_no IS NOT NULL
   `;
-  if (statusFilter !== 'all') {
+  // If statusFilter is provided (0, 1, 2), filter by cat_status. If undefined, do not filter.
+  if (statusFilter !== undefined) {
     query += ` AND cat_status = ?`;
-    params.push(statusFilter);
+    params.push(statusFilter); // statusFilter is a number (0, 1, or 2)
   }
   query += `
     GROUP BY year_week, district_no
@@ -346,7 +339,7 @@ async function fetchAllDb(connection) {
  * 
  * @returns {Promise<number>} The number of rows affected by the deletion. If no rows are deleted, 0 is returned.
  */
-async function deleteByID(connection, id) {
+async function deleteById(connection, id) {
   const query = `DELETE FROM pictures WHERE id = ?`;
   const [result] = await connection.query(
     query,
@@ -366,7 +359,7 @@ async function deleteByID(connection, id) {
  * @throws {CustomError} Throws a CustomError with status 400 if ID is missing or not a number.
  * @throws {CustomError} Throws a CustomError with status 404 if no record found for the given ID.
  */
-async function fetchGPSByID(connection, id) {
+async function fetchGPSById(connection, id) {
   if (!id) {
     throw new CustomError("ID parameter missing", 400)
   }
@@ -379,13 +372,31 @@ async function fetchGPSByID(connection, id) {
     [id]
   );
   if (result.length === 0) {
-    throw new CustomError("Invalid ID", 404)
+    throw new CustomError("Invalid Id", 404)
   }
   return result[0];
 }
 
+
 /**
- * Inserts anonymous user data into the post_anonymous table.
+ * Inserts a new post into the posts table.
+ * 
+ * @param {Object} connection - The MySQL connection object
+ * @param {number} pictureId - The Id of the picture
+ * @param {number} userId - The Id of the user
+ * @returns {Promise<number>} The number of rows affected by the insertion
+ */
+async function insertPostToDb(connection, pictureId, userId) {
+    const query = `INSERT INTO posts (picture_id, user_id) VALUES (?, ?)`;
+  const [result] = await connection.query(
+    query,
+    [pictureId, userId]
+  );
+  return result.insertId;
+}
+
+/**
+ * Inserts anonymous user data into the anonymous_post table.
  * 
  * @param {Object} connection - The MySQL connection object
  * @param {number} postId - The ID of the post/picture
@@ -397,7 +408,7 @@ async function insertAnonymousUserDataToDb(connection, postId, anonymousNickname
   const saltRounds = 10;
   const hashedPassword = await bcrypt.hash(anonymousPassword, saltRounds);
   
-  const query = `INSERT INTO post_anonymous (post_id, anonymous_nickname, anonymous_password_hash) VALUES (?, ?, ?)`;
+  const query = `INSERT INTO anonymous_posts (post_id, anonymous_nickname, anonymous_password_hash) VALUES (?, ?, ?)`;
   const [result] = await connection.query(
     query,
     [postId, anonymousNickname, hashedPassword]
@@ -417,7 +428,7 @@ async function insertAnonymousUserDataToDb(connection, postId, anonymousNickname
  * @param {number} photosToSkip The number of photo IDs to skip
  * @returns {Promise<Object[]>} - A promise that resolves with an array of results, each containing a photo ID.
  */
-async function fetchRecentPhotoID(connection, photosToFetch = 4, photosToSkip = 0) {
+async function fetchRecentPhotoId(connection, photosToFetch = 4, photosToSkip = 0) {
   const query = `SELECT id FROM pictures ORDER BY id DESC LIMIT ? OFFSET ?`;
   const [result] = await connection.query(
     query,
@@ -428,15 +439,16 @@ async function fetchRecentPhotoID(connection, photosToFetch = 4, photosToSkip = 
 
 module.exports = {
   insertPictureToDb,
-  fetchByID,
+  insertPostToDb,
+  insertAnonymousUserDataToDb,
+  fetchById,
   reverseGeocode,
   getCurrentPictureCount,
   getDailyPictureCount,
   getMonthlyPictureCount,
   fetchAllDb,
-  fetchRecentPhotoID,
-  deleteByID,
-  fetchGPSByID,
-  insertAnonymousUserDataToDb,
+  fetchRecentPhotoId,
+  deleteById,
+  fetchGPSById,
   pool
 };

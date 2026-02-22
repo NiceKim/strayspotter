@@ -2,6 +2,9 @@
  * API service for communicating with the StraySpotter backend
  */
 
+import type { CatCategory } from "@/lib/utils"
+import { categoryToStatus } from "@/lib/utils"
+
 // Base URL for API requests - adjust based on your Docker setup
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
 
@@ -98,7 +101,7 @@ export async function fetchDetailedReport({
   startDate?: string,
   endDate?: string,
   month?: string,
-  statusFilter?: "happy" | "normal" | "sad"
+  statusFilter?: CatCategory
 }): Promise<ReportData> {
   const params = new URLSearchParams()
   params.append("timeFrame", reportType)
@@ -110,7 +113,8 @@ export async function fetchDetailedReport({
     params.append("month", month)
   }
   if (statusFilter) {
-    params.append("statusFilter", statusFilter)
+    const numericStatus = categoryToStatus(statusFilter)
+    params.append("statusFilter", numericStatus.toString())
   }
 
   try {
@@ -184,17 +188,6 @@ export async function uploadImage(formData: FormData): Promise<UploadResponse> {
   }
 }
 
-/**
- * Extracts the number of strays from a report string
- * @param reportText Report text containing numbers
- * @returns Total number of strays
- */
-export function extractStrayCount(reportText: string): number {
-  // Extract all numbers from the report text
-  const numbers = reportText.match(/\d+/g)
-  if (!numbers) return 0
-  return Number.parseInt(numbers[0], 10)
-}
 
 /**
  * Fetches GPS data by ID

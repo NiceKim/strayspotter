@@ -20,8 +20,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000"
-    depends_on:
-      - db
     env_file:
       - .env
     environment:
@@ -44,7 +42,6 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-
 
 networks:
   app-network:

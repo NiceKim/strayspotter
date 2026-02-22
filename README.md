@@ -144,7 +144,7 @@
 ![Image](https://github.com/user-attachments/assets/499be5a2-3118-4419-95bb-00513901e30b)
 
 ## Database Diagram
-![ERD](https://github.com/user-attachments/assets/6bd28c18-6afa-4bbd-b323-b4f4202c9c6e)
+![ERD](docs/db_diagram.png)
 
 # [5] Contact
 If you want to contact me, you can reach me at:
