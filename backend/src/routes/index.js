@@ -11,7 +11,7 @@ const pictureRouter = require('./pictureRoutes');
 const postRouter = require('./postRoutes');
 
 router.use(imageRouter);
-router.use(pictureRouter);
-router.use(postRouter);
+router.use('/pictures', pictureRouter);
+router.use('/posts', postRouter);
 
 module.exports = router;

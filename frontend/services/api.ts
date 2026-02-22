@@ -67,7 +67,7 @@ export interface ReportData {
  */
 export async function fetchReport(timeframe: "day" | "week" | "month"): Promise<string | ReportData> {
   try {
-    const response = await fetch(`${API_URL}/report?method=${timeframe}`)
+    const response = await fetch(`${API_URL}/pictures/reports?method=${timeframe}`)
     if (!response.ok) {
       throw new Error("Failed to fetch report")
     }
@@ -118,7 +118,7 @@ export async function fetchDetailedReport({
   }
 
   try {
-    const response = await fetch(`${API_URL}/report?${params.toString()}`)
+    const response = await fetch(`${API_URL}/pictures/reports?${params.toString()}`)
     if (!response.ok) {
       throw new Error("Failed to fetch detailed report")
     }
@@ -137,7 +137,7 @@ interface CatCount {
 
 export async function fetchCatCount(): Promise<CatCount> {
   try {
-    const response = await fetch(`${API_URL}/current-cat-count`)
+    const response = await fetch(`${API_URL}/pictures/counts`)
     if (!response.ok) {
       throw new Error("Failed to fetch cat count")
     }
@@ -164,7 +164,7 @@ interface UploadResponse {
  */
 export async function uploadImage(formData: FormData): Promise<UploadResponse> {
   try {
-    const response = await fetch(`${API_URL}/upload`, {
+    const response = await fetch(`${API_URL}/posts/upload`, {
       method: "POST",
       body: formData,
     })
@@ -196,7 +196,7 @@ export async function uploadImage(formData: FormData): Promise<UploadResponse> {
  */
 export async function fetchGPSByID(id: String): Promise<{ latitude?: number; longitude?: number }> {
   try {
-    const response = await fetch(`${API_URL}/gps/${id}`);
+    const response = await fetch(`${API_URL}/pictures/${id}/gps`);
     if (!response.ok) {
       throw new Error("Failed to fetch GPS data");
     }

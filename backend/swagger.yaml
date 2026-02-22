@@ -16,11 +16,12 @@ paths:
       parameters:
         - in: query
           name: maxKeys
-          required: true
+          required: false
           schema:
             type: integer
+            default: 100
             example: 10
-          description: The number of image keys to return.
+          description: The number of image keys to return. Defaults to 100 if omitted.
       responses:
         '200':
           description: A sorted list of image keys from the cloud
@@ -67,7 +68,7 @@ paths:
           description: Bad Request. Missing key query parameter.
         '500':
           description: Internal server error if fetching data or generating URL fails.
-  /api/report:
+  /api/pictures/reports:
     get:
       summary: Generates a report based on the provided parameters
       description: |
@@ -86,9 +87,9 @@ paths:
           name: statusFilter
           required: false
           schema:
-            type: string
-            enum: [happy, normal, sad]
-          description: Optional filter for cat status
+            type: integer
+            enum: [0, 1, 2]
+          description: Optional filter for cat status. 0=good, 1=concerned, 2=critical
         - in: query
           name: startDate
           required: false
@@ -169,7 +170,7 @@ paths:
               schema:
                 type: string
                 description: Error message explaining the cause of failure
-  /api/classification/{id}:
+  /api/pictures/{id}/classification:
     get:
       summary: Classifies an image as a cat or not
       description: |
@@ -202,59 +203,7 @@ paths:
                   error:
                     type: string
                     description: Error message explaining the cause of failure.
-  /api/upload:
-    post:
-      summary: Handles file upload, processes EXIF data, and stores image metadata in the database.
-      description: Uploads an image file, processes EXIF data, stores metadata (latitude, longitude, etc.), and uploads the image to cloud storage.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: The image file to upload.
-                category:
-                  type: string
-                  description: The category representing the cat's condition (e.g., "happy", "normal", "sad").
-      responses:
-        200:
-          description: Successfully uploaded the image and stored metadata in the database.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    description: A success message indicating the image was successfully uploaded and metadata saved.
-                  picture_id:
-                    type: string
-                    description: The unique identifier of the uploaded image.
-        400:
-          description: Missing file or invalid file format.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Error message explaining the issue (e.g., 'No file selected!').
-        500:
-          description: Internal server error during file upload, EXIF data parsing, or database insertion.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Error message detailing the cause of the failure.
-  /api/current-cat-count:
+  /api/pictures/counts:
     get:
       summary: Retrieves the current count of cat pictures
       description: |
@@ -283,23 +232,7 @@ paths:
               schema:
                 type: string
                 description: Error message explaining the cause of failure
-  /health:
-    get:
-      summary: Health check
-      description: Returns server status for monitoring or load balancer health checks.
-      responses:
-        '200':
-          description: Server is healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
-                    description: Health status message
-  /api/gps/{id}:
+  /api/pictures/{id}/gps:
     get:
       summary: Retrieves GPS coordinates for a specific picture
       description: |
@@ -307,10 +240,11 @@ paths:
       parameters:
         - name: id
           in: path
-          description: The ID of the picture to retrieve GPS coordinates for.
+          description: The ID of the picture (numeric string).
           required: true
           schema:
-            type: integer
+            type: string
+            pattern: '^\d+$'
       responses:
         '200':
           description: Successfully retrieved GPS coordinates
@@ -347,3 +281,82 @@ paths:
                   error:
                     type: string
                     description: Error message explaining the cause of failure
+  /api/posts/upload:
+    post:
+      summary: Handles file upload, processes EXIF data, and stores image metadata in the database.
+      description: |
+        Uploads an image file, processes EXIF data, stores metadata (latitude, longitude, etc.), and uploads the image to cloud storage.
+        For anonymous uploads, anonymousNickname and anonymousPassword are required. For authenticated uploads, use userID.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+                - status
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: The image file to upload.
+                status:
+                  type: integer
+                  enum: [0, 1, 2]
+                  description: Cat status. 0=good, 1=concerned, 2=critical.
+                userID:
+                  type: string
+                  description: User ID (optional). If omitted, anonymousNickname and anonymousPassword are required.
+                anonymousNickname:
+                  type: string
+                  description: Required for anonymous uploads. Nickname for the post.
+                anonymousPassword:
+                  type: string
+                  format: password
+                  description: Required for anonymous uploads. Password for the post.
+      responses:
+        200:
+          description: Successfully uploaded the image and stored metadata in the database. Returns plain text success message.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Picture successfully uploaded"
+        400:
+          description: Missing file or invalid file format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message explaining the issue (e.g., 'No file selected!').
+        500:
+          description: Internal server error during file upload, EXIF data parsing, or database insertion.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message detailing the cause of the failure.
+
+  /health:
+    get:
+      summary: Health check
+      description: Returns server status for monitoring or load balancer health checks.
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                    description: Health status message
