@@ -26,13 +26,42 @@ export default function UploadModal({
 }) {
   const [selectedCategory, setSelectedCategory] = useState<CatCategory>("good")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isDragActive, setIsDragActive] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [anonymousNickname, setAnonymousNickname] = useState<string>("")
+  const [anonymousNickname, setAnonymousNickname] = useState<string>("guest")
   const [anonymousPassword, setAnonymousPassword] = useState<string>("")
   // Always anonymous for now (no login system implemented)
   const isAnonymous = true
   const { toast } = useToast()
   const { refreshData } = useDataRefresh()
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith("image/")) {
+      setSelectedFile(file)
+    } else if (file) {
+      toast({
+        title: "Invalid file type",
+        description: "Please drop an image file (JPG, PNG, HEIC, etc.)",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,6 +83,7 @@ export default function UploadModal({
       const result = await uploadImage(formData)
 
       if (result.success) {
+        setSelectedFile(null)
         onClose()
         refreshData()
         toast({
@@ -78,7 +108,12 @@ export default function UploadModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <Card className="w-full max-w-md rounded-2xl border-none shadow-2xl">
         <CardHeader className="relative bg-cat-orange/10 rounded-t-2xl">
           <CardTitle className="text-center text-2xl font-bold text-cat-brown">Upload Your Cat Photo</CardTitle>
@@ -96,12 +131,18 @@ export default function UploadModal({
               <Label htmlFor="imageInput" className="text-cat-brown font-medium">
                 Select an image
               </Label>
-              <div className="border-2 border-dashed border-cat-orange/50 rounded-lg p-8 text-center hover:border-cat-orange transition-colors">
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  isDragActive ? "border-cat-orange bg-cat-orange/10" : "border-cat-orange/50 hover:border-cat-orange"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <input
                   type="file"
                   id="imageInput"
                   accept="image/*"
-                  required
                   className="hidden"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 />
@@ -129,16 +170,16 @@ export default function UploadModal({
                           />
                         </svg>
                       </div>
-                      <span className="text-cat-brown">Click to browse files</span>
-                      <span className="text-xs text-gray-500 mt-1">JPG, PNG, GIF up to 10MB</span>
+                      <span className="text-cat-brown">{isDragActive ? "Drop image here" : "Click or drag image here"}</span>
+                      <span className="text-xs text-gray-500 mt-1">JPG, PNG, HEIC up to 10MB</span>
                     </>
                   )}
                 </label>
               </div>
-                         </div>
+            </div>
 
-             <div className="space-y-2">
-               <h3 className="text-lg font-semibold text-cat-brown">Cat Status</h3>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-cat-brown">Cat Status</h3>
               <p className="text-sm text-gray-500">Please choose an icon that best matches your cat's condition</p>
 
               <RadioGroup
