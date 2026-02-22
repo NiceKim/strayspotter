@@ -22,9 +22,6 @@ services:
       - db
     env_file:
       - .env
-    environment:
-      - DB_HOST=db
-      - DB_PORT=3306
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -50,25 +47,6 @@ services:
       - app-network
     restart: unless-stopped
 
-  # MySQL database service
-  db:
-    image: mysql:8.4
-    ports:
-      - "3306"
-    env_file:
-      - .env
-    environment:
-      - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - app-network
-    restart: unless-stopped
-
-volumes:
-  mysql-data:
 
 networks:
   app-network:
