@@ -26,7 +26,7 @@ async function uploadImage(req, res) {
     if (!userId) {
       await db.insertAnonymousUserDataToDb(pool, postId, anonymousNickname, anonymousPassword);
     }
-    res.status(200).send('Picture successfully uploaded');
+    res.status(201).send('Picture successfully uploaded');
   } catch (err) {
     console.error('General error in upload:', err);
     res.status(400).send(err.message || 'File upload failed due to errors');

@@ -16,5 +16,8 @@
   "license": "MIT",
   "engines": {
     "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3"
   }
-} 
+}

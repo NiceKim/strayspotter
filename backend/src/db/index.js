@@ -18,10 +18,12 @@ const pool = mysql.createPool({
 const pictures = require('./pictures.js');
 const posts = require('./posts.js');
 const tokens = require('./tokens.js');
+const users = require('./user.js');
 
 module.exports = {
   pool,
   getValidToken: tokens.getValidToken,
   ...pictures,
-  ...posts
+  ...posts,
+  ...users
 };
