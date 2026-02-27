@@ -6,9 +6,9 @@ require('dotenv').config();
 
 async function register (req, res, next) {
     try {
-        const {accountId, nickname, password, email} = req.body;
+        const {accountId, password, email} = req.body;
 
-        if (!accountId || !nickname || !password || !email) {
+        if (!accountId || !password || !email) {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
@@ -20,7 +20,7 @@ async function register (req, res, next) {
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        const userId = await db.insertUser(pool, accountId, nickname, hashedPassword, email);
+        const userId = await db.insertUser(pool, accountId, hashedPassword, email);
 
         const token = jwt.sign(
             { userId: userId},
@@ -32,15 +32,13 @@ async function register (req, res, next) {
             user: {
                 userId: userId,
                 accountId: accountId,
-                email: email,
-                nickname: nickname
+                email: email
             }
         });
     } catch (error) {
         next(error);
     }
 }
-
 
 async function login (req, res, next) {
     try {
@@ -71,8 +69,7 @@ async function login (req, res, next) {
             user: {
                 userId: user.id,
                 accountId: user.account_id,
-                email: user.email,
-                nickname: user.nickname
+                email: user.email
             }
         });
     }   catch (error) {

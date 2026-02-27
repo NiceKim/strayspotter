@@ -4,7 +4,6 @@ USE strayspotter_database;
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     account_id VARCHAR(20) UNIQUE,
-    nickname VARCHAR(20) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
     joined_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
