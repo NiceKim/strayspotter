@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
+import AuthModal from "@/components/auth-modal"
 import { fetchGalleryImages, fetchImageUrl } from "@/services/api"
 import { useDataRefresh } from "@/contexts/DataRefreshContext"
 
@@ -15,6 +16,7 @@ type GalleryItem = {
 
 export default function GalleryPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { refreshTrigger } = useDataRefresh()
@@ -46,6 +48,8 @@ export default function GalleryPage() {
 
   const openUploadModal = () => setIsUploadModalOpen(true)
   const closeUploadModal = () => setIsUploadModalOpen(false)
+  const openAuthModal = () => setIsAuthModalOpen(true)
+  const closeAuthModal = () => setIsAuthModalOpen(false)
 
   const loadMoreImages = async () => {
     const currentCount = galleryItems.length
@@ -71,9 +75,10 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5dc]">
-      <Navbar openUploadModal={openUploadModal} />
+      <Navbar openUploadModal={openUploadModal} openAuthModal={openAuthModal} />
 
       <UploadModal isOpen={isUploadModalOpen} onClose={closeUploadModal} />
+      <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
 
       <div id="aesthetic" className="mx-auto my-16 max-w-7xl rounded-4xl bg-[#10403B] px-4 py-2 shadow-2xl">
         <div className="rounded-4xl bg-white p-8">

@@ -1,3 +1,9 @@
+async function fetchUserById(connection, id) {
+    const query = `SELECT * FROM users WHERE id = ?`;
+    const [result] = await connection.query(query, [id]);
+    return result[0];
+}
+
 async function fetchUserByAccountId(connection, accountId) {
     const query = `SELECT * FROM users WHERE account_id = ?`;
     const [result] = await connection.query(query, [accountId]);
@@ -17,6 +23,7 @@ async function insertUser(connection, accountId, passwordHash, email) {
 }
 
 module.exports = {
+  fetchUserById,
   fetchUserByAccountId,
   fetchUserByEmail,
   insertUser

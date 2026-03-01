@@ -1,20 +1,24 @@
 "use client"
 
-import {useState} from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import {usePathname, useRouter} from "next/navigation"
-import {Menu, X} from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { Menu, X, LogIn } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import ProfilePopover from "@/components/profile-popover"
 
 interface NavbarProps {
     openUploadModal?: () => void;
+    openAuthModal?: () => void;
     mapRef?: React.RefObject<HTMLElement | null>;
 }
 
-export default function Navbar({openUploadModal, mapRef}: NavbarProps) {
+export default function Navbar({openUploadModal, openAuthModal, mapRef}: NavbarProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const pathname = usePathname()
     const router = useRouter()
+    const { isAuthenticated } = useAuth()
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen)
@@ -82,20 +86,6 @@ export default function Navbar({openUploadModal, mapRef}: NavbarProps) {
                         Gallery
                     </Link>
                 </li>
-                {/*
-          <li className="px-5 py-2 md:p-0">
-          <Link
-              href="/#founders"
-              className={`nav-link rounded-md md:px-4 md:py-2 text-white ${
-                  pathname === "/#founders"
-                      ? "bg-primary"
-                      : "hover:bg-white hover:bg-opacity-10 hover:text-primary"
-              }`}
-          >
-            Team
-          </Link>
-        </li>
-        */}
 
                 <li className="px-5 py-2 md:p-0">
                     <Link
@@ -121,14 +111,27 @@ export default function Navbar({openUploadModal, mapRef}: NavbarProps) {
                 </li>
             </ul>
 
-            <div className="hidden md:block">
+            <div className="hidden md:flex md:items-center md:gap-3">
+                {openAuthModal && (
+                    isAuthenticated ? (
+                        <ProfilePopover />
+                    ) : (
+                        <button
+                            onClick={openAuthModal}
+                            className="flex items-center justify-center h-12 w-12 rounded-full bg-white/10 p-3 text-white hover:bg-primary hover:text-white transition-colors"
+                            aria-label="Log in"
+                        >
+                            <LogIn className="h-6 w-6" />
+                        </button>
+                    )
+                )}
                 {openUploadModal && (
                     <button
                         onClick={openUploadModal}
                         className="transition-transform duration-300 hover:rotate-12"
                         aria-label="Upload"
                     >
-                        <Image src="/resources/camera_icon.png" alt="Upload" width={50} height={50}/>
+                        <Image src="/resources/camera_icon.png" alt="Upload" width={48} height={48}/>
                     </button>
                 )}
             </div>

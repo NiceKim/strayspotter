@@ -190,6 +190,108 @@ export async function uploadImage(formData: FormData): Promise<UploadResponse> {
 
 
 /**
+ * Auth response structure from register/login
+ */
+interface AuthResponse {
+  token: string
+  user: { userId: number; accountId: string; email: string }
+}
+
+/**
+ * Registers a new user
+ * @param accountId User's account ID
+ * @param password User's password
+ * @param email User's email
+ * @returns Auth response with token and user
+ */
+export async function register(
+  accountId: string,
+  password: string,
+  email: string
+): Promise<AuthResponse> {
+  const response = await fetch(`${API_URL}/users/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accountId, password, email }),
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = "Failed to register"
+    try {
+      const data = text ? JSON.parse(text) : {}
+      if (data.message) message = data.message
+    } catch {
+      if (text) message = text
+    }
+    throw new Error(message)
+  }
+
+  return response.json()
+}
+
+/**
+ * Logs in an existing user
+ * @param accountId User's account ID
+ * @param password User's password
+ * @returns Auth response with token and user
+ */
+export async function login(accountId: string, password: string): Promise<AuthResponse> {
+  const response = await fetch(`${API_URL}/users/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accountId, password }),
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = "Failed to login"
+    try {
+      const data = text ? JSON.parse(text) : {}
+      if (data.message) message = data.message
+    } catch {
+      if (text) message = text
+    }
+    throw new Error(message)
+  }
+
+  return response.json()
+}
+
+export interface UserDetails {
+  accountId: string
+  email: string
+  joinedDate: string
+}
+
+/**
+ * Fetches current user details (requires auth token)
+ * @param token JWT token
+ * @returns User details (accountId, email, joinedDate)
+ */
+export async function fetchUserDetails(token: string): Promise<UserDetails> {
+  const response = await fetch(`${API_URL}/users/details`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = "Failed to fetch user details"
+    try {
+      const data = text ? JSON.parse(text) : {}
+      if (data.message) message = data.message
+    } catch {
+      if (text) message = text
+    }
+    throw new Error(message)
+  }
+
+  return response.json()
+}
+
+/**
  * Fetches GPS data by ID
  * @param id Numeric ID
  * @returns Object containing latitude and longitude
