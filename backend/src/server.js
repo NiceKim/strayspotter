@@ -11,6 +11,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const errorHandler = require('./middleware/errorHandler');
 app.use(errorHandler);
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 
 // API documentation setup
 const swaggerUi = require('swagger-ui-express');

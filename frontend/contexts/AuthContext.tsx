@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { login as apiLogin, register as apiRegister } from "@/services/api";
+import { login as apiLogin, register as apiRegister, refresh as apiRefresh } from "@/services/api";
 
 interface User {
   userId: number;
@@ -17,6 +17,7 @@ interface AuthContextType {
   login: (accountId: string, password: string) => Promise<void>;
   register: (accountId: string, password: string, email: string) => Promise<void>;
   logout: () => void;
+  refreshToken: () => Promise<string | null>;
 }
 
 const AUTH_STORAGE_KEY = "strayspotter_auth";
@@ -81,6 +82,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearStoredAuth();
   }, []);
 
+  const refreshToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const newToken = await apiRefresh();
+      setToken(newToken);
+      setUser((currentUser) => {
+        if (currentUser) setStoredAuth(newToken, currentUser);
+        return currentUser;
+      });
+      return newToken;
+    } catch {
+      setToken(null);
+      setUser(null);
+      clearStoredAuth();
+      return null;
+    }
+  }, []);
+
   const value: AuthContextType = {
     user,
     token,
@@ -89,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
+    refreshToken,
   };
 
   return (

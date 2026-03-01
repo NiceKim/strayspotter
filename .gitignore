@@ -27,9 +27,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-
+.cursor
 # Logs
 *.log
 
 # Coverage directory
 coverage/ 
+

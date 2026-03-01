@@ -213,6 +213,7 @@ export async function register(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accountId, password, email }),
+    credentials: "include",
   })
 
   if (!response.ok) {
@@ -241,6 +242,7 @@ export async function login(accountId: string, password: string): Promise<AuthRe
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accountId, password }),
+    credentials: "include",
   })
 
   if (!response.ok) {
@@ -256,6 +258,35 @@ export async function login(accountId: string, password: string): Promise<AuthRe
   }
 
   return response.json()
+}
+
+/**
+ * Exchanges refresh token (cookie) for a new access token.
+ * Requires credentials so the refresh cookie is sent.
+ * @returns New access token
+ */
+export async function refresh(): Promise<string> {
+  const response = await fetch(`${API_URL}/users/refresh`, {
+    method: "POST",
+    credentials: "include",
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = "Failed to refresh token"
+    try {
+      const data = text ? JSON.parse(text) : {}
+      if (data.message) message = data.message
+    } catch {
+      if (text) message = text
+    }
+    const err = new Error(message) as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
+
+  const data = await response.json()
+  return data.token
 }
 
 export interface UserDetails {
@@ -285,7 +316,9 @@ export async function fetchUserDetails(token: string): Promise<UserDetails> {
     } catch {
       if (text) message = text
     }
-    throw new Error(message)
+    const err = new Error(message) as Error & { status?: number }
+    err.status = response.status
+    throw err
   }
 
   return response.json()

@@ -11,26 +11,43 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  * Renders User icon trigger + dropdown with email, joined date, and Log out.
  */
 export default function ProfilePopover() {
-  const { token, logout } = useAuth();
+  const { token, logout, refreshToken } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (profileOpen && token) {
-      setDetailsError(null);
-      setDetailsLoading(true);
-      fetchUserDetails(token)
-        .then(setUserDetails)
-        .catch((err) =>
-          setDetailsError(err instanceof Error ? err.message : "Failed to load")
-        )
-        .finally(() => setDetailsLoading(false));
-    } else {
+    if (!profileOpen || !token) {
       setUserDetails(null);
+      return;
     }
-  }, [profileOpen, token]);
+    setDetailsError(null);
+    setDetailsLoading(true);
+    fetchUserDetails(token)
+      .then(setUserDetails)
+      .catch(async (err: unknown) => {
+        const status = err && typeof err === "object" && "status" in err ? (err as { status: number }).status : undefined;
+        if (status === 401) {
+          const newToken = await refreshToken();
+          if (newToken) {
+            try {
+              const details = await fetchUserDetails(newToken);
+              setDetailsError(null);
+              setUserDetails(details);
+              return;
+            } catch {
+              setDetailsError("Failed to load");
+            }
+          } else {
+            setDetailsError("Session expired. Please log in again.");
+          }
+        } else {
+          setDetailsError(err instanceof Error ? err.message : "Failed to load");
+        }
+      })
+      .finally(() => setDetailsLoading(false));
+  }, [profileOpen, token, refreshToken]);
 
   return (
     <Popover open={profileOpen} onOpenChange={setProfileOpen}>
