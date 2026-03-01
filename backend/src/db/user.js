@@ -10,9 +10,9 @@ async function fetchUserByEmail(connection, email) {
     return result[0];
 }
 
-async function insertUser(connection, accountId, nickname, password, email) {
-    const query = `INSERT INTO users (account_id, nickname, password_hash, email) VALUES (?, ?, ?, ?)`;
-    const [result] = await connection.query(query, [accountId, nickname, password, email]);
+async function insertUser(connection, accountId, passwordHash, email) {
+    const query = `INSERT INTO users (account_id, password_hash, email) VALUES (?, ?, ?)`;
+    const [result] = await connection.query(query, [accountId, passwordHash, email]);
     return result.insertId;
 }
 
