@@ -15,6 +15,23 @@ const verifyToken = (req, res, next) => {
     }
 };
 
+/** Verifies access token from Authorization header. Use for protected API routes that can be accessed without a token. */
+const optionalVerifyToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        req.userId = null;
+        return next();
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.userId = decoded.userId;
+        next();
+    } catch (err) {
+        req.userId = null;
+        return next();
+    }
+};
+
 /** Verifies refresh token from cookie. Use only for the refresh endpoint. */
 const verifyRefreshToken = (req, res, next) => {
     const token = req.cookies?.refreshToken;
@@ -30,4 +47,4 @@ const verifyRefreshToken = (req, res, next) => {
     }
 };
 
-module.exports = { verifyToken, verifyRefreshToken };
+module.exports = { verifyToken, optionalVerifyToken, verifyRefreshToken };

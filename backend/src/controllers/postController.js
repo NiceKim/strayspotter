@@ -4,7 +4,7 @@ const { processImageUpload } = require('../services/image_handler');
 async function uploadImage(req, res) {
   const file = req.file;
   const status = req.body.status;
-  const userId = req.body.userID;
+  const userId = req.userId;
   const anonymousNickname = req.body.anonymousNickname;
   const anonymousPassword = req.body.anonymousPassword;
 

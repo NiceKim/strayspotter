@@ -160,12 +160,18 @@ interface UploadResponse {
 /**
  * Uploads an image to the backend
  * @param formData FormData containing the image and metadata
+ * @param token Optional JWT token for authenticated uploads
  * @returns Upload result
  */
-export async function uploadImage(formData: FormData): Promise<UploadResponse> {
+export async function uploadImage(formData: FormData, token?: string | null): Promise<UploadResponse> {
   try {
+    const headers: HeadersInit = {}
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
     const response = await fetch(`${API_URL}/posts/upload`, {
       method: "POST",
+      headers,
       body: formData,
     })
 
