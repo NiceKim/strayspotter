@@ -4,6 +4,33 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+/**
+ * @typedef {Object} RegisterBody
+ * @property {string} accountId - Unique account identifier for the user.
+ * @property {string} password - Plain-text password to be hashed and stored.
+ * @property {string} email - User email address.
+ */
+
+/**
+ * @typedef {Object} LoginBody
+ * @property {string} accountId - Account identifier used for login.
+ * @property {string} password - Plain-text password for authentication.
+ */
+
+/**
+ * Registers a new user with account ID, password, and email, and issues access/refresh tokens.
+ *
+ * Request:
+ * - Body: {@link RegisterBody}
+ *
+ * Response:
+ * - 201 Created: JSON containing access token and basic user info
+ * - 400 Bad Request: Missing fields or duplicate email/accountId
+ * - 500 Internal Server Error: Any unexpected error during registration
+ *
+ * @param {RegisterBody} req.body
+ * @returns {Promise<void>}
+ */
 async function register (req, res, next) {
     try {
         const {accountId, password, email} = req.body;
@@ -53,6 +80,20 @@ async function register (req, res, next) {
     }
 }
 
+/**
+ * Authenticates a user by account ID and password, then issues access/refresh tokens.
+ *
+ * Request:
+ * - Body: {@link LoginBody}
+ *
+ * Response:
+ * - 200 OK: JSON containing access token and user info
+ * - 400 Bad Request: Missing accountId or password
+ * - 401 Unauthorized: Invalid accountId or password
+ *
+ * @param {LoginBody} req.body
+ * @returns {Promise<void>}
+ */
 async function login (req, res, next) {
     try {
         const { accountId, password } = req.body;
@@ -102,6 +143,18 @@ async function login (req, res, next) {
     }
 }
 
+/**
+ * Retrieves details of the currently authenticated user.
+ *
+ * Request:
+ * - `req.userId` must be populated by authentication middleware.
+ *
+ * Response:
+ * - 200 OK: { accountId, email, joinedDate }
+ * - 404 Not Found: When the user does not exist
+ *
+ * @returns {Promise<void>}
+ */
 async function getUserDetails (req, res, next) {
     try {
         const userId = req.userId;
@@ -119,6 +172,17 @@ async function getUserDetails (req, res, next) {
     }
 }
 
+/**
+ * Issues a new short-lived access token for the authenticated user.
+ *
+ * Request:
+ * - `req.userId` must be populated by authentication middleware.
+ *
+ * Response:
+ * - 200 OK: { token: string }
+ *
+ * @returns {Promise<void>}
+ */
 async function refreshToken (req, res, next) {
     try {
         const userId = req.userId;

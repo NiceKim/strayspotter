@@ -1,6 +1,42 @@
 const db = require('../db');
 const { processImageUpload } = require('../services/image_handler');
+const bcrypt = require('bcrypt');
 
+/**
+ * @typedef {Object} UploadImageBody
+ * @property {string} status - "0" | "1" | "2" (cat status).
+ * @property {string} [anonymousNickname] - Nickname to use when uploading anonymously.
+ * @property {string} [anonymousPassword] - Plain-text password for anonymous uploads.
+ */
+
+/**
+ * @typedef {Object} DeletePostParams
+ * @property {string} postId - ID of the post to delete.
+ */
+
+/**
+ * @typedef {Object} DeletePostBody
+ * @property {string} [anonymousPassword] - Optional password used only when deleting an anonymous post.
+ */
+
+/**
+ * Uploads a cat picture and creates a new post for either an authenticated or anonymous user.
+ *
+ * Request:
+ * - Headers:
+ *   - Authorization: Bearer token (optional; if missing, the upload is treated as anonymous)
+ * - Body: {@link UploadImageBody}
+ * - File:
+ *   - file (required): Image file parsed into `req.file` by middleware.
+ *
+ * Response:
+ * - 201 Created: 'Picture successfully uploaded'
+ * - 400 Bad Request: Missing required fields or invalid status
+ * - 500 Internal Server Error: Any failure during upload or processing
+ *
+ * @param {UploadImageBody} req.body
+ * @returns {Promise<void>}
+ */
 async function uploadImage(req, res) {
   const file = req.file;
   const status = req.body.status;
@@ -29,12 +65,73 @@ async function uploadImage(req, res) {
     res.status(201).send('Picture successfully uploaded');
   } catch (err) {
     console.error('General error in upload:', err);
-    res.status(400).send(err.message || 'File upload failed due to errors');
+    res.status(500).send(err.message || 'File upload failed due to errors');
   }
 }
 
-async function deletePost(req, res) {
-  const userId = req.userId;
+/**
+ * Deletes a post either by its owning user or by an anonymous user with the correct password.
+ *
+ * Request:
+ * - Headers:
+ *   - Authorization: Bearer token (optional; required to delete posts owned by an authenticated user)
+ * - Params: {@link DeletePostParams}
+ * - Body: {@link DeletePostBody}
+ *
+ * Behavior:
+ * - For posts created by authenticated users: `req.userId` (set by auth middleware from the token) must match `post.user_id`.
+ * - For anonymous posts: `anonymousPassword` must be provided and must match the stored hash.
+ *
+ * Response:
+ * - 400 Bad Request: Missing postId or anonymousPassword when required
+ * - 403 Forbidden: Unauthorized to delete the post
+ * - 404 Not Found: Post or anonymous post record not found
+ * - 500 Internal Server Error: Failed to delete the post
+ *
+ * @param {DeletePostParams} req.params
+ * @param {DeletePostBody} req.body
+ * @returns {Promise<void>}
+ */
+async function deletePost(req, res, next) {
+  try {
+    const userId = req.userId;
+    const postId = req.params.postId;
+    const anonymousPassword = req.body.anonymousPassword;
+
+    if (!postId) {
+      return res.status(400).send('Post ID is required');
+    }
+    const pool = db.pool;
+    const post = await db.fetchPostById(pool, postId);
+    if (!post) {
+      return res.status(404).send('Post not found');
+    }
+
+    if (post.user_id) { 
+      if (post.user_id !== userId) {
+        return res.status(403).send('Unauthorized to delete this post');
+      }
+    } else {
+      if (!anonymousPassword) {
+        return res.status(400).send('Anonymous password is required');
+      }
+      const anonymousPost = await db.fetchAnonymousPostById(pool, postId);
+      if (!anonymousPost) {
+        return res.status(404).send('Anonymous post not found');
+      }
+      const isPasswordValid = await bcrypt.compare(anonymousPassword, anonymousPost.anonymous_password_hash);
+      if (!isPasswordValid) {
+        return res.status(403).send('Unauthorized to delete this post');
+      }
+    }
+
+    const result = await db.deletePost(pool, postId);
+    if (result === 0) {
+      return res.status(500).send('Failed to delete post');
+    }
+  } catch (err) {
+    next(err);
+  }
 }
 
 module.exports = {

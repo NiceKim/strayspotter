@@ -3,6 +3,18 @@
  */
 const { CustomError } = require('../../errors/CustomError.js');
 
+/**
+ * Inserts a new picture record into the database.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {Object} data - Picture metadata to insert.
+ * @param {number|null} data.latitude - Latitude where the picture was taken.
+ * @param {number|null} data.longitude - Longitude where the picture was taken.
+ * @param {Date} [data.date] - Date the picture was taken (defaults to now if missing).
+ * @param {number|null} data.districtNo - District number or null if unknown.
+ * @param {number} data.catStatus - Cat status value stored with the picture.
+ * @returns {Promise<number>} ID of the newly created picture.
+ */
 async function insertPictureToDb(connection, data) {
   if (!data.date) {
     data.date = new Date();
@@ -20,6 +32,14 @@ async function insertPictureToDb(connection, data) {
   return result.insertId;
 }
 
+/**
+ * Fetches a picture record by its ID.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {number} id - Picture ID.
+ * @returns {Promise<Object>} The picture row.
+ * @throws {Error} If no record exists for the given ID.
+ */
 async function fetchById(connection, id) {
   const query = `SELECT * FROM pictures WHERE id = ?`;
   const [result] = await connection.query(query, [id]);
@@ -29,7 +49,15 @@ async function fetchById(connection, id) {
   return result[0];
 }
 
-async function getCurrentPictureCount(connection, districtNo) {
+/**
+ * Aggregates picture counts for the current day, week, and month,
+ * optionally filtered by district.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {number|null} [districtNo=null] - District number to filter by; when null, counts for all districts.
+ * @returns {Promise<{day: number, week: number, month: number}>} Aggregated counts.
+ */
+async function getCurrentPictureCount(connection, districtNo = null) {
   let query = `
     SELECT 
       SUM(CASE WHEN DATE(date_taken) = CURDATE() THEN 1 ELSE 0 END) as day_count,
@@ -38,11 +66,13 @@ async function getCurrentPictureCount(connection, districtNo) {
     FROM pictures
   `;
 
-  if (districtNo != 0) {
-    query += ` WHERE district_no = ${districtNo}`;
+  const params = [];
+  if (districtNo !== null && districtNo !== undefined) {
+    query += ` WHERE district_no = ?`;
+    params.push(districtNo);
   }
 
-  const [result] = await connection.query(query);
+  const [result] = await connection.query(query, params);
   return {
     day: Number(result[0].day_count || 0),
     week: Number(result[0].week_count || 0),
@@ -50,6 +80,17 @@ async function getCurrentPictureCount(connection, districtNo) {
   };
 }
 
+/**
+ * Returns daily picture counts per district for a given date range.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {Object} options - Query options.
+ * @param {string} options.startDate - Start date in YYYY-MM-DD format.
+ * @param {string} options.endDate - End date in YYYY-MM-DD format.
+ * @param {number} [options.statusFilter] - Optional cat status filter.
+ * @returns {Promise<Object[]>} Array of rows grouped by date and district.
+ * @throws {Error} If startDate or endDate is missing.
+ */
 async function getDailyPictureCount(connection, { startDate, endDate, statusFilter }) {
   if (!startDate || !endDate) {
     throw new Error('Missing required parameter: startDate and endDate');
@@ -78,6 +119,16 @@ async function getDailyPictureCount(connection, { startDate, endDate, statusFilt
   return result;
 }
 
+/**
+ * Returns weekly-aggregated picture counts per district for a given month.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {Object} options - Query options.
+ * @param {string} options.month - Target month in YYYY-MM format.
+ * @param {number} [options.statusFilter] - Optional cat status filter.
+ * @returns {Promise<Object[]>} Array of rows grouped by year-week and district.
+ * @throws {Error} If month is missing.
+ */
 async function getMonthlyPictureCount(connection, { month, statusFilter }) {
   if (!month) {
     throw new Error('Missing required parameter: month');
@@ -106,12 +157,27 @@ async function getMonthlyPictureCount(connection, { month, statusFilter }) {
   return result;
 }
 
+/**
+ * Deletes a picture by its ID.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {number} id - Picture ID.
+ * @returns {Promise<number>} Number of affected rows.
+ */
 async function deleteById(connection, id) {
   const query = `DELETE FROM pictures WHERE id = ?`;
   const [result] = await connection.query(query, [id]);
   return result.affectedRows;
 }
 
+/**
+ * Fetches GPS coordinates (latitude, longitude) for a given picture ID.
+ *
+ * @param {import('mysql2/promise').Pool | import('mysql2/promise').Connection} connection - MySQL pool or connection.
+ * @param {number|string} id - Picture ID to validate and query.
+ * @returns {Promise<{latitude: number, longitude: number}>} GPS coordinates.
+ * @throws {CustomError} If ID is missing, invalid, or not found.
+ */
 async function fetchGPSById(connection, id) {
   if (!id) {
     throw new CustomError('ID parameter missing', 400);
@@ -127,6 +193,14 @@ async function fetchGPSById(connection, id) {
   return result[0];
 }
 
+/**
+ * Fetches recent picture IDs in descending order.
+ *
+ * @param {import('mysql2/promise').Pool | import('mysql2/promise').Connection} connection - MySQL pool or connection.
+ * @param {number} [photosToFetch=4] - Number of picture IDs to fetch.
+ * @param {number} [photosToSkip=0] - Number of most recent entries to skip (offset).
+ * @returns {Promise<Object[]>} Array of rows containing `id`.
+ */
 async function fetchRecentPhotoId(connection, photosToFetch = 4, photosToSkip = 0) {
   const query = `SELECT id FROM pictures ORDER BY id DESC LIMIT ? OFFSET ?`;
   const [result] = await connection.query(query, [photosToFetch, photosToSkip]);

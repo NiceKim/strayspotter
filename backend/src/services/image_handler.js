@@ -74,10 +74,11 @@ async function processImageUpload(connection, file, catStatus) {
 }
 
 /**
- * Converts a HEIC image buffer to a JPEG image buffer.
+ * Converts a HEIC image file object to a JPEG image file object.
  *
- * @param {Buffer} inputBuffer The buffer of the HEIC image to convert.
- * @returns {Promise<Buffer>} The resulting JPEG image buffer after conversion.
+ * @param {Object} file - File object containing the HEIC image buffer.
+ * @param {Buffer} file.buffer - Buffer of the HEIC image to convert.
+ * @returns {Promise<Object>} The resulting JPEG file object containing the JPEG buffer and metadata.
  */
 async function convertHeicToJpg(file) {
   const jpgBuffer = await heicConvert({

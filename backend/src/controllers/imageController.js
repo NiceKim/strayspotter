@@ -1,5 +1,28 @@
 const s3Service = require('../services/s3Service');
 
+/**
+ * @typedef {Object} ListImagesQuery
+ * @property {string} [maxKeys] - Maximum number of image keys to retrieve (stringified integer).
+ */
+
+/**
+ * @typedef {Object} GetImageUrlQuery
+ * @property {string} key - S3 object key to generate a URL for.
+ */
+
+/**
+ * Retrieves a list of image object keys stored in S3.
+ *
+ * Request:
+ * - Query: {@link ListImagesQuery}
+ *
+ * Response:
+ * - 200 OK: Array of image keys (string[])
+ * - On error: empty array []
+ *
+ * @param {ListImagesQuery} req.query
+ * @returns {Promise<void>}
+ */
 async function listImages(req, res) {
   const maxKeys = parseInt(req.query.maxKeys, 10) || 100;
   try {
@@ -11,6 +34,20 @@ async function listImages(req, res) {
   }
 }
 
+/**
+ * Generates a presigned URL for a specific S3 object key.
+ *
+ * Request:
+ * - Query: {@link GetImageUrlQuery}
+ *
+ * Response:
+ * - 200 OK: { url: string }
+ * - 400 Bad Request: when key is missing
+ * - On other errors: returns a fallback URL
+ *
+ * @param {GetImageUrlQuery} req.query
+ * @returns {Promise<void>}
+ */
 async function getImageUrl(req, res) {
   const { key } = req.query;
   try {

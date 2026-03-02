@@ -3,6 +3,13 @@
  */
 const { requestOneMapToken } = require('../lib/oneMap.js');
 
+/**
+ * Updates an existing access token row in the tokens table.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {{ token_name: string, expire_date: number, access_token: string }} token - Token payload to persist.
+ * @returns {Promise<string>} The token_name that was updated.
+ */
 async function updateAccessToken(connection, token) {
   const query = `UPDATE tokens SET expire_date = ?, access_token = ? WHERE token_name = ?`;
   const [results] = await connection.query(
@@ -12,6 +19,13 @@ async function updateAccessToken(connection, token) {
   return results.token_name;
 }
 
+/**
+ * Fetches an access token row by its name.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {string} tokenName - Name of the token to fetch.
+ * @returns {Promise<Object|null>} The token row, or null if it does not exist.
+ */
 async function fetchAccessToken(connection, tokenName) {
   const query = `SELECT * FROM tokens WHERE token_name = ?`;
   const [results] = await connection.query(query, [tokenName]);
@@ -21,6 +35,13 @@ async function fetchAccessToken(connection, tokenName) {
   return results[0];
 }
 
+/**
+ * Inserts a new access token row.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @param {{ token_name: string, expire_date: number, access_token: string }} token - Token payload to insert.
+ * @returns {Promise<string>} The token_name that was inserted.
+ */
 async function saveAccessToken(connection, token) {
   const query = `INSERT INTO tokens (token_name, expire_date, access_token) VALUES (?, ?, ?)`;
   const [results] = await connection.query(query, [
@@ -31,6 +52,14 @@ async function saveAccessToken(connection, token) {
   return results.token_name;
 }
 
+/**
+ * Retrieves a valid OneMap access token:
+ * - Returns a cached token from the DB when it exists and is not expired.
+ * - Otherwise requests a new token from OneMap and upserts it into the DB.
+ *
+ * @param {import('mysql2/promise').Pool} connection - MySQL connection pool.
+ * @returns {Promise<{ token_name: string, expire_date: number, access_token: string }>} A valid OneMap token.
+ */
 async function getValidToken(connection) {
   let token = await fetchAccessToken(connection, 'onemap');
   const current_time_stamp = Math.floor(Date.now() / 1000);
