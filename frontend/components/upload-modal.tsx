@@ -33,7 +33,7 @@ export default function UploadModal({
   const [anonymousPassword, setAnonymousPassword] = useState<string>("")
   const { toast } = useToast()
   const { refreshData } = useDataRefresh()
-  const { isAuthenticated, token } = useAuth()
+  const { isAuthenticated, token, refreshToken } = useAuth()
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -79,26 +79,53 @@ export default function UploadModal({
 
     try {
       setIsUploading(true)
-      const result = await uploadImage(formData, token)
-
-      if (result.success) {
-        setSelectedFile(null)
-        onClose()
-        refreshData()
-        toast({
-          title: "Upload successful",
-          description: "Your cat photo has been uploaded successfully!",
-        })
-      } else {
-        throw new Error(result.message)
-      }
-    } catch (error) {
-      console.error("Upload failed:", error)
+      await uploadImage(formData, token)
+      setSelectedFile(null)
+      onClose()
+      refreshData()
       toast({
-        title: "Upload failed",
-        description: "There was an error uploading your photo. Please try again.",
-        variant: "destructive",
+        title: "Upload successful",
+        description: "Your cat photo has been uploaded successfully!",
       })
+    } catch (error) {
+      const status = error && typeof error === "object" && "status" in error ? (error as { status: number }).status : undefined
+      if (status === 401 && isAuthenticated) {
+        const newToken = await refreshToken()
+        if (newToken) {
+          const retryFormData = new FormData()
+          retryFormData.append("image", selectedFile)
+          retryFormData.append("status", categoryToStatus(selectedCategory).toString())
+          try {
+            await uploadImage(retryFormData, newToken)
+            setSelectedFile(null)
+            onClose()
+            refreshData()
+            toast({
+              title: "Upload successful",
+              description: "Your cat photo has been uploaded successfully!",
+            })
+          } catch {
+            toast({
+              title: "Upload failed",
+              description: "There was an error uploading your photo. Please try again.",
+              variant: "destructive",
+            })
+          }
+        } else {
+          toast({
+            title: "Session expired",
+            description: "Please log in again to upload.",
+            variant: "destructive",
+          })
+        }
+      } else {
+        console.error("Upload failed:", error)
+        toast({
+          title: "Upload failed",
+          description: "There was an error uploading your photo. Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsUploading(false)
     }

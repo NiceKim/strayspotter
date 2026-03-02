@@ -8,6 +8,65 @@ import { categoryToStatus } from "@/lib/utils"
 // Base URL for API requests - adjust based on your Docker setup
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
 
+/** Auth callbacks for 401 handling - set by AuthProvider */
+export interface AuthCallbacks {
+  getToken: () => string | null
+  refreshToken: () => Promise<string | null>
+  logout: () => void
+}
+
+let authCallbacks: AuthCallbacks | null = null
+
+export function setAuthCallbacks(callbacks: AuthCallbacks | null) {
+  authCallbacks = callbacks
+}
+
+/** Decodes JWT payload (no verification - server validates). Returns exp in seconds or null. */
+export function getTokenExpiry(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]))
+    return payload.exp ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Returns true if token is expired (with 60s buffer). */
+export function isTokenExpired(token: string): boolean {
+  const exp = getTokenExpiry(token)
+  if (!exp) return true
+  return exp * 1000 < Date.now() + 60_000
+}
+
+/**
+ * Fetch with auth: adds Bearer token, on 401 tries refresh and retries once.
+ * Only use for requests without FormData body (body is consumed on first request).
+ */
+export async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Response> {
+  const token = authCallbacks?.getToken() ?? null
+  const headers = new Headers(init.headers)
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  }
+
+  let response = await fetch(url, { ...init, headers })
+
+  if (response.status === 401 && authCallbacks) {
+    const newToken = await authCallbacks.refreshToken()
+    if (newToken) {
+      headers.set("Authorization", `Bearer ${newToken}`)
+      response = await fetch(url, { ...init, headers })
+    } else {
+      authCallbacks.logout()
+      const err = new Error("Session expired") as Error & { status?: number }
+      err.status = 401
+      throw err
+    }
+  }
+
+  return response
+}
+
 /**
  * Fetches gallery images from the backend
  * @param maxKeys Maximum number of images to fetch
@@ -164,33 +223,27 @@ interface UploadResponse {
  * @returns Upload result
  */
 export async function uploadImage(formData: FormData, token?: string | null): Promise<UploadResponse> {
-  try {
-    const headers: HeadersInit = {}
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
-    const response = await fetch(`${API_URL}/posts/upload`, {
-      method: "POST",
-      headers,
-      body: formData,
-    })
+  const headers: HeadersInit = {}
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+  const response = await fetch(`${API_URL}/posts/upload`, {
+    method: "POST",
+    headers,
+    body: formData,
+  })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`Failed to upload image: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`)
-    }
+  if (!response.ok) {
+    const errorText = await response.text()
+    const err = new Error(`Failed to upload image: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ""}`) as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
 
-    const result = await response.text()
-    return {
-      success: true,
-      message: result
-    }
-  } catch (error) {
-    console.error("Error uploading image:", error)
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Unknown error occurred"
-    }
+  const result = await response.text()
+  return {
+    success: true,
+    message: result
   }
 }
 
@@ -302,16 +355,11 @@ export interface UserDetails {
 }
 
 /**
- * Fetches current user details (requires auth token)
- * @param token JWT token
+ * Fetches current user details (requires auth). Uses fetchWithAuth for 401 auto-refresh.
  * @returns User details (accountId, email, joinedDate)
  */
-export async function fetchUserDetails(token: string): Promise<UserDetails> {
-  const response = await fetch(`${API_URL}/users/details`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+export async function fetchUserDetails(): Promise<UserDetails> {
+  const response = await fetchWithAuth(`${API_URL}/users/details`)
 
   if (!response.ok) {
     const text = await response.text()

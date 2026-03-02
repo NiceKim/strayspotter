@@ -1,7 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { login as apiLogin, register as apiRegister, refresh as apiRefresh } from "@/services/api";
+import {
+  login as apiLogin,
+  register as apiRegister,
+  refresh as apiRefresh,
+  setAuthCallbacks,
+  isTokenExpired,
+} from "@/services/api";
 
 interface User {
   userId: number;
@@ -51,12 +57,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = getStoredAuth();
-    if (stored) {
-      setToken(stored.token);
-      setUser(stored.user);
+    let cancelled = false;
+
+    async function init() {
+      const stored = getStoredAuth();
+      if (!stored) {
+        if (!cancelled) setIsLoading(false);
+        return;
+      }
+
+      if (isTokenExpired(stored.token)) {
+        try {
+          const newToken = await apiRefresh();
+          if (!cancelled && newToken) {
+            setToken(newToken);
+            setUser(stored.user);
+            setStoredAuth(newToken, stored.user);
+          } else if (!cancelled) {
+            clearStoredAuth();
+          }
+        } catch {
+          if (!cancelled) {
+            clearStoredAuth();
+          }
+        }
+      } else {
+        setToken(stored.token);
+        setUser(stored.user);
+      }
+      if (!cancelled) setIsLoading(false);
     }
-    setIsLoading(false);
+
+    init();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (accountId: string, password: string) => {
@@ -98,6 +133,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   }, []);
+
+  useEffect(() => {
+    setAuthCallbacks({
+      getToken: () => token,
+      refreshToken,
+      logout,
+    });
+    return () => setAuthCallbacks(null);
+  }, [token, refreshToken, logout]);
 
   const value: AuthContextType = {
     user,
