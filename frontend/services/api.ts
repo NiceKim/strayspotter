@@ -272,7 +272,6 @@ export async function register(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accountId, password, email }),
-    credentials: "include",
   })
 
   if (!response.ok) {
@@ -301,7 +300,6 @@ export async function login(accountId: string, password: string): Promise<AuthRe
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accountId, password }),
-    credentials: "include",
   })
 
   if (!response.ok) {
@@ -321,13 +319,11 @@ export async function login(accountId: string, password: string): Promise<AuthRe
 
 /**
  * Exchanges refresh token (cookie) for a new access token.
- * Requires credentials so the refresh cookie is sent.
  * @returns New access token
  */
 export async function refresh(): Promise<string> {
   const response = await fetch(`${API_URL}/users/refresh`, {
     method: "POST",
-    credentials: "include",
   })
 
   if (!response.ok) {
