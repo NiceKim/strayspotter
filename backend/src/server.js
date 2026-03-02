@@ -38,6 +38,7 @@ const server = app.listen(PORT, HOST, () => {
 
 process.on('SIGINT', () => {
   console.log('Gracefully shutting down...');
+  db.pool.end();
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
