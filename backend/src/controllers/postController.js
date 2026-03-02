@@ -33,6 +33,11 @@ async function uploadImage(req, res) {
   }
 }
 
+async function deletePost(req, res) {
+  const userId = req.userId;
+}
+
 module.exports = {
-  uploadImage
+  uploadImage,
+  deletePost
 };

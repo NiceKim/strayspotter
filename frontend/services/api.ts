@@ -227,7 +227,7 @@ export async function uploadImage(formData: FormData, token?: string | null): Pr
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
-  const response = await fetch(`${API_URL}/posts/upload`, {
+  const response = await fetch(`${API_URL}/posts`, {
     method: "POST",
     headers,
     body: formData,
