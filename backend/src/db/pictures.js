@@ -164,7 +164,7 @@ async function getMonthlyPictureCount(pool, { month, statusFilter }) {
  * @param {number} id - Picture ID.
  * @returns {Promise<number>} Number of affected rows.
  */
-async function deleteById(pool, id) {
+async function deletePictureById(pool, id) {
   const query = `DELETE FROM pictures WHERE id = ?`;
   const [result] = await pool.query(query, [id]);
   return result.affectedRows;
@@ -213,7 +213,7 @@ module.exports = {
   getCurrentPictureCount,
   getDailyPictureCount,
   getMonthlyPictureCount,
-  deleteById,
+  deletePictureById,
   fetchGPSById,
   fetchRecentPhotoId
 };

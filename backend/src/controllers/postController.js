@@ -124,11 +124,17 @@ async function deletePost(req, res, next) {
         return res.status(403).send('Unauthorized to delete this post');
       }
     }
-
-    const result = await db.deletePost(pool, postId);
-    if (result === 0) {
+    //TODO: Delete the picture from S3
+    //TODO: Add transaction to delete the picture and post together
+    const pictureResult = await db.deletePictureById(pool, post.picture_id);
+    if (pictureResult === 0) {
+      return res.status(500).send('Failed to delete picture');
+    }
+    const postResult = await db.deletePost(pool, postId);
+    if (postResult === 0) {
       return res.status(500).send('Failed to delete post');
     }
+    res.status(200).send('Post deleted successfully');
   } catch (err) {
     next(err);
   }

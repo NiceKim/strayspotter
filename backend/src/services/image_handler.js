@@ -66,7 +66,7 @@ async function processImageUpload(connection, file, catStatus) {
   } catch (error) {
     console.error("Error during upload process:", error);
     console.log("Deleting picture from DB with ID:", pictureId);
-    await db.deleteById(connection, pictureId);
+    await db.deletePictureById(connection, pictureId);
     console.log("Deleted picture from DB with ID:", pictureId);
     throw error;
   }
