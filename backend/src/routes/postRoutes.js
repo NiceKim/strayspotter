@@ -6,7 +6,7 @@ const { optionalVerifyToken } = require('../middleware/auth');
 const storage = multer.memoryStorage();
 const receiveImage = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('image');
 
-// POST /api/posts - create a new post with an uploaded image
 router.post('/', optionalVerifyToken, receiveImage, postController.uploadImage);
+router.delete('/:id', optionalVerifyToken, postController.deletePost);
 
 module.exports = router;

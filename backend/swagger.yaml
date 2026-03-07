@@ -331,7 +331,7 @@ paths:
                 type: string
                 description: Error message detailing the cause of the failure.
 
-  /api/posts/{postId}:
+  /api/posts/{id}:
     delete:
       summary: Deletes a post (soft delete)
       description: |
@@ -340,7 +340,7 @@ paths:
         Authenticated users can delete their own posts with a Bearer token; for anonymous posts, provide anonymousPassword in the request body.
       parameters:
         - in: path
-          name: postId
+          name: id
           required: true
           schema:
             type: string
@@ -371,7 +371,7 @@ paths:
                 type: string
                 example: "Post deleted successfully"
         '400':
-          description: Missing postId or anonymousPassword when required.
+          description: Missing id or anonymousPassword when required.
         '403':
           description: Unauthorized to delete this post.
         '404':

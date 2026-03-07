@@ -95,7 +95,7 @@ async function uploadImage(req, res) {
 async function deletePost(req, res, next) {
   try {
     const userId = req.userId;
-    const postId = req.params.postId;
+    const postId = req.params.id;
     const anonymousPassword = req.body.anonymousPassword;
 
     if (!postId) {
@@ -124,7 +124,6 @@ async function deletePost(req, res, next) {
         return res.status(403).send('Unauthorized to delete this post');
       }
     }
-    //TODO: Delete the picture from S3
     //TODO: Add transaction to delete the picture and post together
     const pictureResult = await db.deletePictureById(pool, post.picture_id);
     if (pictureResult === 0) {
