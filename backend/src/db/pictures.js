@@ -36,15 +36,15 @@ async function insertPictureToDb(pool, data) {
  * Fetches a picture record by its ID.
  *
  * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
- * @param {number} id - Picture ID.
+ * @param {number|string} id - Picture ID (assumed validated by caller).
  * @returns {Promise<Object>} The picture row.
- * @throws {Error} If no record exists for the given ID.
+ * @throws {CustomError} 404 when no picture is found for the given id.
  */
-async function fetchById(pool, id) {
+async function fetchPictureById(pool, id) {
   const query = `SELECT * FROM pictures WHERE id = ? AND deleted_at IS NULL`;
   const [result] = await pool.query(query, [id]);
-  if (result.length == 0) {
-    throw new Error('No data found for the given ID');
+  if (result.length === 0) {
+    throw new CustomError('No data found for the given ID', 404);
   }
   return result[0];
 }
@@ -174,29 +174,6 @@ async function deletePictureById(pool, id) {
 }
 
 /**
- * Fetches GPS coordinates (latitude, longitude) for a given picture ID.
- *
- * @param {import('mysql2/promise').Pool | import('mysql2/promise').Connection} pool - MySQL pool or connection.
- * @param {number|string} id - Picture ID to validate and query.
- * @returns {Promise<{latitude: number, longitude: number}>} GPS coordinates.
- * @throws {CustomError} If ID is missing, invalid, or not found.
- */
-async function fetchGPSById(pool, id) {
-  if (!id) {
-    throw new CustomError('ID parameter missing', 400);
-  }
-  if (typeof id !== 'number' && !/^\d+$/.test(id)) {
-    throw new CustomError('ID must be a number', 400);
-  }
-  const query = `SELECT latitude, longitude FROM pictures WHERE id = ? AND deleted_at IS NULL`;
-  const [result] = await pool.query(query, [id]);
-  if (result.length === 0) {
-    throw new CustomError('Invalid Id', 404);
-  }
-  return result[0];
-}
-
-/**
  * Fetches recent picture IDs in descending order.
  *
  * @param {import('mysql2/promise').Pool | import('mysql2/promise').Connection} pool - MySQL pool or connection.
@@ -212,11 +189,10 @@ async function fetchRecentPhotoId(pool, photosToFetch = 4, photosToSkip = 0) {
 
 module.exports = {
   insertPictureToDb,
-  fetchById,
+  fetchPictureById,
   getCurrentPictureCount,
   getDailyPictureCount,
   getMonthlyPictureCount,
   deletePictureById,
-  fetchGPSById,
   fetchRecentPhotoId
 };

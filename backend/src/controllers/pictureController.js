@@ -107,7 +107,11 @@ async function getCurrentCatCount(req, res) {
  * @returns {Promise<void>}
  */
 async function getClassification(req, res) {
-  const requestURL = `http://${SECOND_SERVER_HOST}:${SECOND_SERVER_PORT}/classification/${req.params.id}`;
+  const id = req.params.id;
+  if (!id || !/^\d+$/.test(id)) {
+    return res.status(400).json({ error: 'Valid picture ID is required' });
+  }
+  const requestURL = `http://${SECOND_SERVER_HOST}:${SECOND_SERVER_PORT}/classification/${id}`;
   try {
     const response = await axios.get(requestURL);
     res.json({ isCat: response.data });
@@ -131,9 +135,13 @@ async function getClassification(req, res) {
  * @returns {Promise<void>}
  */
 async function getGps(req, res) {
+  const id = req.params.id;
+  if (!id || !/^\d+$/.test(id)) {
+    return res.status(400).json({ error: 'Valid picture ID is required' });
+  }
   try {
-    const { latitude, longitude } = await db.fetchGPSById(db.pool, req.params.id);
-    res.json({ latitude, longitude });
+    const picture = await db.fetchPictureById(db.pool, id);
+    res.json({ latitude: picture.latitude, longitude: picture.longitude });
   } catch (err) {
     const status = err instanceof CustomError ? err.statusCode : 500;
     res.status(status).json({ error: err.message });
