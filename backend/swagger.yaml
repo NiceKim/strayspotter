@@ -331,6 +331,54 @@ paths:
                 type: string
                 description: Error message detailing the cause of the failure.
 
+  /api/posts/{postId}:
+    delete:
+      summary: Deletes a post (soft delete)
+      description: |
+        Soft-deletes the post and its associated picture (logical delete).
+        Data remains in the database but is excluded from default queries.
+        Authenticated users can delete their own posts with a Bearer token; for anonymous posts, provide anonymousPassword in the request body.
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+          description: ID of the post to delete.
+        - in: header
+          name: Authorization
+          required: false
+          schema:
+            type: string
+          description: Bearer token. Required when deleting a post owned by an authenticated user.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                anonymousPassword:
+                  type: string
+                  format: password
+                  description: Required when deleting an anonymous post.
+      responses:
+        '200':
+          description: Post and associated picture were soft-deleted successfully.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Post deleted successfully"
+        '400':
+          description: Missing postId or anonymousPassword when required.
+        '403':
+          description: Unauthorized to delete this post.
+        '404':
+          description: Post or anonymous post record not found.
+        '500':
+          description: Failed to soft-delete the post or picture.
+
   /api/users/register:
     post:
       summary: Registers a new user

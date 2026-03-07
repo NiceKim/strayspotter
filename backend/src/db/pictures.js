@@ -41,7 +41,7 @@ async function insertPictureToDb(pool, data) {
  * @throws {Error} If no record exists for the given ID.
  */
 async function fetchById(pool, id) {
-  const query = `SELECT * FROM pictures WHERE id = ?`;
+  const query = `SELECT * FROM pictures WHERE id = ? AND deleted_at IS NULL`;
   const [result] = await pool.query(query, [id]);
   if (result.length == 0) {
     throw new Error('No data found for the given ID');
@@ -66,9 +66,10 @@ async function getCurrentPictureCount(pool, districtNo = null) {
     FROM pictures
   `;
 
+  query += ` WHERE deleted_at IS NULL`;
   const params = [];
   if (districtNo !== null && districtNo !== undefined) {
-    query += ` WHERE district_no = ?`;
+    query += ` AND district_no = ?`;
     params.push(districtNo);
   }
 
@@ -104,6 +105,7 @@ async function getDailyPictureCount(pool, { startDate, endDate, statusFilter }) 
     FROM pictures
     WHERE date_taken BETWEEN ? AND ?
     AND district_no IS NOT NULL
+    AND deleted_at IS NULL
   `;
   const params = [startDate, endDate];
   if (statusFilter !== undefined) {
@@ -143,6 +145,7 @@ async function getMonthlyPictureCount(pool, { month, statusFilter }) {
     FROM pictures
     WHERE YEAR(date_taken) = ? AND MONTH(date_taken) = ?
     AND district_no IS NOT NULL
+    AND deleted_at IS NULL
   `;
   if (statusFilter !== undefined) {
     query += ` AND cat_status = ?`;
@@ -165,7 +168,7 @@ async function getMonthlyPictureCount(pool, { month, statusFilter }) {
  * @returns {Promise<number>} Number of affected rows.
  */
 async function deletePictureById(pool, id) {
-  const query = `DELETE FROM pictures WHERE id = ?`;
+  const query = `UPDATE pictures SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL`;
   const [result] = await pool.query(query, [id]);
   return result.affectedRows;
 }
@@ -185,7 +188,7 @@ async function fetchGPSById(pool, id) {
   if (typeof id !== 'number' && !/^\d+$/.test(id)) {
     throw new CustomError('ID must be a number', 400);
   }
-  const query = `SELECT latitude, longitude FROM pictures WHERE id = ?`;
+  const query = `SELECT latitude, longitude FROM pictures WHERE id = ? AND deleted_at IS NULL`;
   const [result] = await pool.query(query, [id]);
   if (result.length === 0) {
     throw new CustomError('Invalid Id', 404);
@@ -202,7 +205,7 @@ async function fetchGPSById(pool, id) {
  * @returns {Promise<Object[]>} Array of rows containing `id`.
  */
 async function fetchRecentPhotoId(pool, photosToFetch = 4, photosToSkip = 0) {
-  const query = `SELECT id FROM pictures ORDER BY id DESC LIMIT ? OFFSET ?`;
+  const query = `SELECT id FROM pictures WHERE deleted_at IS NULL ORDER BY id DESC LIMIT ? OFFSET ?`;
   const [result] = await pool.query(query, [photosToFetch, photosToSkip]);
   return result;
 }

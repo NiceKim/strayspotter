@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS pictures (
     longitude FLOAT,
     date_taken DATETIME,
     cat_status TINYINT(3),
-    district_no INT
+    district_no INT,
+    deleted_at DATETIME NULL DEFAULT NULL
 );
 
 CREATE TABLE  IF NOT EXISTS posts (
@@ -25,6 +26,7 @@ CREATE TABLE  IF NOT EXISTS posts (
     user_id BIGINT DEFAULT NULL,
     body TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL DEFAULT NULL,
 
     CONSTRAINT fk_posts_users
         FOREIGN KEY (user_id)

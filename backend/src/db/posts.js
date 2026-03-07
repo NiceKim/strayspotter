@@ -52,7 +52,7 @@ async function insertAnonymousUserDataToDb(
  * @returns {Promise<Object|undefined>} The post row, or undefined if not found.
  */
 async function fetchPostById(pool, postId) {
-  const query = `SELECT * FROM posts WHERE id = ?`;
+  const query = `SELECT * FROM posts WHERE id = ? AND deleted_at IS NULL`;
   const [result] = await pool.query(query, [postId]);
   return result[0];
 }
@@ -78,7 +78,7 @@ async function fetchAnonymousPostById(pool, postId) {
  * @returns {Promise<number>} Number of affected rows (1 on success, 0 if nothing was deleted).
  */
 async function deletePost(pool, postId) {
-  const query = `DELETE FROM posts WHERE id = ?`;
+  const query = `UPDATE posts SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL`;
   const [result] = await pool.query(query, [postId]);
   return result.affectedRows;
 }
