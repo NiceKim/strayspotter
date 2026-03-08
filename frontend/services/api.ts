@@ -266,6 +266,42 @@ export async function uploadImage(formData: FormData, token?: string | null): Pr
   }
 }
 
+/**
+ * Deletes a post. For anonymous posts (user_id null), anonymousPassword is required.
+ * For posts owned by the current user, uses auth token.
+ * @param postId Post ID to delete
+ * @param anonymousPassword Required when deleting an anonymous post
+ */
+export async function deletePost(
+  postId: number,
+  anonymousPassword?: string
+): Promise<void> {
+  const url = `${API_URL}/posts/${postId}`
+  const init: RequestInit = {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(
+      anonymousPassword != null ? { anonymousPassword } : {}
+    ),
+  }
+  const response = authCallbacks?.getToken()
+    ? await fetchWithAuth(url, init)
+    : await fetch(url, init)
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = "Failed to delete post"
+    try {
+      const data = text ? JSON.parse(text) : {}
+      if (data.message) message = data.message
+    } catch {
+      if (text) message = text
+    }
+    const err = new Error(message) as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
+}
 
 /**
  * Auth response structure from register/login
