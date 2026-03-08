@@ -68,13 +68,31 @@ export async function fetchWithAuth(url: string, init: RequestInit = {}): Promis
 }
 
 /**
- * Fetches gallery images from the backend
- * @param maxKeys Maximum number of images to fetch
- * @returns Array of image keys
+ * Post row returned by the gallery/images API (DB-based).
  */
-export async function fetchGalleryImages(maxKeys = 100): Promise<string[]> {
+export interface GalleryPost {
+  id: number
+  picture_id: number
+  user_id: number | null
+  body: string | null
+  created_at: string
+  deleted_at: string | null
+}
+
+/**
+ * Fetches gallery posts from the backend (DB-based).
+ * @param maxKeys Maximum number of posts to fetch
+ * @param offset Number of posts to skip (for pagination)
+ * @returns Array of post objects (id, picture_id, body, created_at, ...)
+ */
+export async function fetchGalleryImages(
+  maxKeys = 100,
+  offset = 0
+): Promise<GalleryPost[]> {
   try {
-    const response = await fetch(`${API_URL}/images?maxKeys=${maxKeys}`)
+    const response = await fetch(
+      `${API_URL}/images?maxKeys=${maxKeys}&offset=${offset}`
+    )
     if (!response.ok) {
       throw new Error("Failed to fetch images")
     }
@@ -86,13 +104,14 @@ export async function fetchGalleryImages(maxKeys = 100): Promise<string[]> {
 }
 
 /**
- * Fetches image URL and metadata by key
- * @param key Image key
- * @returns Object containing image URL and metadata
+ * Fetches presigned image URL by picture id (builds key as k{pictureId}.jpg internally).
+ * @param pictureId Picture id from post.picture_id
+ * @returns Object containing image URL
  */
-export async function fetchImageUrl(key: string): Promise<{ url: string }> {
+export async function fetchImageUrl(pictureId: number): Promise<{ url: string }> {
+  const key = `k${pictureId}.jpg`
   try {
-    const response = await fetch(`${API_URL}/image-url?key=${key}`)
+    const response = await fetch(`${API_URL}/image-url?key=${encodeURIComponent(key)}`)
     if (!response.ok) {
       throw new Error("Failed to fetch image URL")
     }
@@ -379,7 +398,7 @@ export async function fetchUserDetails(): Promise<UserDetails> {
  * @param id Numeric ID
  * @returns Object containing latitude and longitude
  */
-export async function fetchGPSByID(id: String): Promise<{ latitude?: number; longitude?: number }> {
+export async function fetchGPSByID(id: string | number): Promise<{ latitude?: number; longitude?: number }> {
   try {
     const response = await fetch(`${API_URL}/pictures/${id}/gps`);
     if (!response.ok) {

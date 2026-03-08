@@ -73,7 +73,7 @@ async function fetchAnonymousPostById(pool, postId) {
 /**
  * Deletes a post by its ID.
  *
- * @param {import('mysql2/promise').Pool | import('mysql2/promise').Connection} pool - MySQL pool or connection.
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
  * @param {number} postId - ID of the post to delete.
  * @returns {Promise<number>} Number of affected rows (1 on success, 0 if nothing was deleted).
  */
@@ -83,11 +83,26 @@ async function deletePost(pool, postId) {
   return result.affectedRows;
 }
 
+/**
+ * Fetches posts from the database.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} limit - Number of posts to fetch.
+ * @param {number} offset - Number of posts to skip.
+ * @returns {Promise<Object[]>} Array of post rows.
+ */
+async function fetchPosts(pool, limit = 10, offset = 0) {
+  const query = `SELECT * FROM posts WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+  const [result] = await pool.query(query, [limit, offset]);
+  return result;
+}
+
 
 module.exports = {
   insertPostToDb,
   insertAnonymousUserDataToDb,
   fetchPostById,
   fetchAnonymousPostById,
-  deletePost
+  deletePost,
+  fetchPosts
 };

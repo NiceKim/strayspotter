@@ -24,12 +24,12 @@ export default function GalleryPage() {
   const loadImages = async () => {
     setIsLoading(true)
     try {
-      const imageKeys = await fetchGalleryImages(12)
+      const posts = await fetchGalleryImages(12)
       const items = await Promise.all(
-        imageKeys.map(async (key) => {
-          const imageData = await fetchImageUrl(key)
+        posts.map(async (post) => {
+          const imageData = await fetchImageUrl(post.picture_id)
           return {
-            id: key,
+            id: String(post.id),
             src: imageData.url,
           }
         }),
@@ -54,14 +54,14 @@ export default function GalleryPage() {
   const loadMoreImages = async () => {
     const currentCount = galleryItems.length
     try {
-      const imageKeys = await fetchGalleryImages(currentCount + 6)
-      const newKeys = imageKeys.slice(currentCount)
+      const posts = await fetchGalleryImages(currentCount + 6)
+      const newPosts = posts.slice(currentCount)
 
       const newItems = await Promise.all(
-        newKeys.map(async (key) => {
-          const imageData = await fetchImageUrl(key)
+        newPosts.map(async (post) => {
+          const imageData = await fetchImageUrl(post.picture_id)
           return {
-            id: key,
+            id: String(post.id),
             src: imageData.url,
           }
         }),

@@ -79,15 +79,14 @@ export default function CatMap() {
   }, [refreshTrigger])
 
   const loadImages = async (map: any, L: any) => {
-    const imageKeys = await fetchGalleryImages(10)
-    if (!imageKeys) {
+    const posts = await fetchGalleryImages(10)
+    if (!posts.length) {
       return
     }
-    for (const key of imageKeys) {
+    for (const post of posts) {
       try {
-        const data = await fetchImageUrl(key)
-        const numericPart = key.replace(/\D/g, "");
-        const gpsData = await fetchGPSByID(numericPart)
+        const data = await fetchImageUrl(post.picture_id)
+        const gpsData = await fetchGPSByID(post.picture_id)
         const latitude = gpsData.latitude
         const longitude = gpsData.longitude
         if (!latitude || !longitude) { continue }
@@ -111,7 +110,7 @@ export default function CatMap() {
           setCurrentTooltip(null)
         })
       } catch (error) {
-        console.error("Failed to process image key:", key, error)
+        console.error("Failed to process image for picture:", post.picture_id, error)
       }
     }
   }

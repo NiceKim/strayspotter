@@ -1,33 +1,37 @@
+const db = require('../db');
 const s3Service = require('../services/s3Service');
 
 /**
  * @typedef {Object} ListImagesQuery
- * @property {string} [maxKeys] - Maximum number of image keys to retrieve (stringified integer).
+ * @property {string} [maxKeys] - Maximum number of posts to retrieve (stringified integer).
+ * @property {string} [offset] - Number of posts to skip for pagination (stringified integer).
  */
 
 /**
  * @typedef {Object} GetImageUrlQuery
- * @property {string} key - S3 object key to generate a URL for.
+ * @property {string} key - S3 object key to generate a URL for (e.g. k{picture_id}.jpg).
  */
 
 /**
- * Retrieves a list of image object keys stored in S3.
+ * Retrieves a list of posts from the database (id, picture_id, body, created_at, user_id, etc.).
+ * Frontend builds image key as `k{picture_id}.jpg` when requesting presigned URL.
  *
  * Request:
  * - Query: {@link ListImagesQuery}
  *
  * Response:
- * - 200 OK: Array of image keys (string[])
+ * - 200 OK: Array of post rows (id, picture_id, body, created_at, user_id, ...)
  * - On error: empty array []
  *
  * @param {ListImagesQuery} req.query
  * @returns {Promise<void>}
  */
 async function listImages(req, res) {
-  const maxKeys = parseInt(req.query.maxKeys, 10) || 100;
+  const limit = parseInt(req.query.maxKeys, 10) || 100;
+  const offset = parseInt(req.query.offset, 10) || 0;
   try {
-    const imageKeys = await s3Service.listImageKeys(maxKeys);
-    res.json(imageKeys);
+    const posts = await db.fetchPosts(db.pool, limit, offset);
+    res.json(posts);
   } catch (err) {
     console.error('Error listing images:', err);
     res.json([]);
