@@ -54,11 +54,18 @@ async function processImageUpload(connection, file, catStatus) {
       originalname: file.originalname
     };
 
-    if (path.extname(file.originalname).toLowerCase() === ".heic") {
+    let ext = path.extname(file.originalname || '').toLowerCase();
+    const isHeicByExt = ext === '.heic';
+    const mt = (file.mimetype || '').toLowerCase();
+    const isHeicByMimetype = mt.includes('heic') || mt.includes('heif');
+    const isHeicBranch = isHeicByExt || isHeicByMimetype;
+
+    if (isHeicBranch) {
       fileToUpload = await convertHeicToJpg(fileToUpload);
+      ext = '.jpg';
     }
     if (fileToUpload.mimetype.startsWith('image/')) {
-      fileToUpload.uniquename = 'k' + pictureId + path.extname(file.originalname);
+      fileToUpload.uniquename = 'k' + pictureId + (ext || '.jpg');
       await s3Service.uploadToCloud(fileToUpload);
     } else {
       throw new Error("Not an accepted Image format");
@@ -78,7 +85,7 @@ async function processImageUpload(connection, file, catStatus) {
  *
  * @param {Object} file - File object containing the HEIC image buffer.
  * @param {Buffer} file.buffer - Buffer of the HEIC image to convert.
- * @returns {Promise<Object>} The resulting JPEG file object containing the JPEG buffer and metadata.
+ * @returns {Promise<Object>} The resulting JPEG file object (buffer, mimetype).
  */
 async function convertHeicToJpg(file) {
   const jpgBuffer = await heicConvert({
@@ -87,8 +94,7 @@ async function convertHeicToJpg(file) {
   });
   return {
     buffer : jpgBuffer,
-    mimetype : 'image/jpeg',
-    name : 'file.jpeg'
+    mimetype : 'image/jpeg'
   };
 }
 
