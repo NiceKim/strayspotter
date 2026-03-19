@@ -413,6 +413,10 @@ export async function fetchUserDetails(): Promise<UserDetails> {
   const response = await fetchWithAuth(`${API_URL}/users/details`)
 
   if (!response.ok) {
+    if (response.status === 404) {
+      // Token is valid but user no longer exists (e.g. DB reset). Clear local auth to avoid "logged-in but broken" UI.
+      authCallbacks?.logout()
+    }
     const text = await response.text()
     let message = "Failed to fetch user details"
     try {
