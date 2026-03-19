@@ -1,7 +1,10 @@
 const axios = require('axios');
 const db = require('../db');
 const { createReport } = require('../services/report');
-const { CustomError } = require('../../errors/CustomError');
+const {
+  CustomError,
+  ValidationError
+} = require('../../errors/CustomError');
 
 const SECOND_SERVER_HOST = process.env.SECOND_HOST;
 const SECOND_SERVER_PORT = process.env.SECOND_PORT;
@@ -34,30 +37,44 @@ const SECOND_SERVER_PORT = process.env.SECOND_PORT;
  * @param {GetReportQuery} req.query
  * @returns {Promise<void>}
  */
-async function getReport(req, res) {
+async function getReport(req, res, next) {
   const pool = db.pool;
   const { timeFrame, statusFilter, startDate, endDate, month } = req.query;
 
-  if (!timeFrame) return res.status(400).send('timeFrame is required');
-  if (timeFrame !== 'daily' && timeFrame !== 'monthly') {
-    return res.status(400).send('timeFrame must be either "daily" or "monthly"');
-  }
-
-  let numericStatusFilter;
-  if (statusFilter) {
-    numericStatusFilter = parseInt(statusFilter, 10);
-    if (isNaN(numericStatusFilter) || numericStatusFilter < 0 || numericStatusFilter > 2) {
-      return res.status(400).send('statusFilter must be "0" (good), "1" (concerned), or "2" (critical)');
-    }
-  }
-  if (timeFrame === 'daily' && (!startDate || !endDate)) {
-    return res.status(400).send('startDate and endDate are required for daily reports');
-  }
-  if (timeFrame === 'monthly' && !month) {
-    return res.status(400).send('month is required for monthly reports (YYYY-MM format)');
-  }
-
   try {
+    if (!timeFrame) {
+      throw new ValidationError('timeFrame is required');
+    }
+    if (timeFrame !== 'daily' && timeFrame !== 'monthly') {
+      throw new ValidationError(
+        'timeFrame must be either "daily" or "monthly"'
+      );
+    }
+
+    let numericStatusFilter;
+    if (statusFilter) {
+      numericStatusFilter = parseInt(statusFilter, 10);
+      if (
+        isNaN(numericStatusFilter) ||
+        numericStatusFilter < 0 ||
+        numericStatusFilter > 2
+      ) {
+        throw new ValidationError(
+          'statusFilter must be "0" (good), "1" (concerned), or "2" (critical)'
+        );
+      }
+    }
+    if (timeFrame === 'daily' && (!startDate || !endDate)) {
+      throw new ValidationError(
+        'startDate and endDate are required for daily reports'
+      );
+    }
+    if (timeFrame === 'monthly' && !month) {
+      throw new ValidationError(
+        'month is required for monthly reports (YYYY-MM format)'
+      );
+    }
+
     let options = { statusFilter: numericStatusFilter };
     if (timeFrame === 'daily') options = { ...options, startDate, endDate };
     else options = { ...options, month };
@@ -65,8 +82,7 @@ async function getReport(req, res) {
     const reportData = await createReport(pool, timeFrame, options);
     res.json(reportData);
   } catch (err) {
-    console.error('Report generation error:', err);
-    res.status(500).json('Report generation failed');
+    next(err);
   }
 }
 
@@ -83,13 +99,12 @@ async function getReport(req, res) {
  *
  * @returns {Promise<void>}
  */
-async function getCurrentCatCount(req, res) {
+async function getCurrentCatCount(req, res, next) {
   try {
     const reportData = await db.getCurrentPictureCount(db.pool);
     res.json(reportData);
   } catch (err) {
-    console.error('Report generation error:', err);
-    res.status(500).json('Report generation failed');
+    next(err);
   }
 }
 
@@ -106,18 +121,22 @@ async function getCurrentCatCount(req, res) {
  * @param {PictureIdParams} req.params
  * @returns {Promise<void>}
  */
-async function getClassification(req, res) {
-  const id = req.params.id;
-  if (!id || !/^\d+$/.test(id)) {
-    return res.status(400).json({ error: 'Valid picture ID is required' });
-  }
-  const requestURL = `http://${SECOND_SERVER_HOST}:${SECOND_SERVER_PORT}/classification/${id}`;
+async function getClassification(req, res, next) {
   try {
-    const response = await axios.get(requestURL);
-    res.json({ isCat: response.data });
-  } catch (error) {
-    console.log('Classification server error:', error);
-    res.json({ isCat: true });
+    const id = req.params.id;
+    if (!id || !/^\d+$/.test(id)) {
+      throw new ValidationError('Valid picture ID is required');
+    }
+    const requestURL = `http://${SECOND_SERVER_HOST}:${SECOND_SERVER_PORT}/classification/${id}`;
+    try {
+      const response = await axios.get(requestURL);
+      res.json({ isCat: response.data });
+    } catch (error) {
+      console.log('Classification server error:', error);
+      res.json({ isCat: true });
+    }
+  } catch (err) {
+    next(err);
   }
 }
 
@@ -134,17 +153,16 @@ async function getClassification(req, res) {
  * @param {PictureIdParams} req.params
  * @returns {Promise<void>}
  */
-async function getGps(req, res) {
-  const id = req.params.id;
-  if (!id || !/^\d+$/.test(id)) {
-    return res.status(400).json({ error: 'Valid picture ID is required' });
-  }
+async function getGps(req, res, next) {
   try {
+    const id = req.params.id;
+    if (!id || !/^\d+$/.test(id)) {
+      throw new ValidationError('Valid picture ID is required');
+    }
     const picture = await db.fetchPictureById(db.pool, id);
     res.json({ latitude: picture.latitude, longitude: picture.longitude });
   } catch (err) {
-    const status = err instanceof CustomError ? err.statusCode : 500;
-    res.status(status).json({ error: err.message });
+    next(err);
   }
 }
 

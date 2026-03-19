@@ -1,5 +1,6 @@
 const db = require('../db');
 const s3Service = require('../services/s3Service');
+const { ValidationError } = require('../../errors/CustomError');
 
 /**
  * @typedef {Object} ListImagesQuery
@@ -26,15 +27,14 @@ const s3Service = require('../services/s3Service');
  * @param {ListImagesQuery} req.query
  * @returns {Promise<void>}
  */
-async function listImages(req, res) {
+async function listImages(req, res, next) {
   const limit = parseInt(req.query.maxKeys, 10) || 100;
   const offset = parseInt(req.query.offset, 10) || 0;
   try {
     const posts = await db.fetchPosts(db.pool, limit, offset);
     res.json(posts);
   } catch (err) {
-    console.error('Error listing images:', err);
-    res.json([]);
+    next(err);
   }
 }
 
@@ -52,15 +52,16 @@ async function listImages(req, res) {
  * @param {GetImageUrlQuery} req.query
  * @returns {Promise<void>}
  */
-async function getImageUrl(req, res) {
+async function getImageUrl(req, res, next) {
   const { key } = req.query;
   try {
-    if (!key) return res.status(400).send('Key is required');
+    if (!key) {
+      throw new ValidationError('Key is required');
+    }
     const url = await s3Service.getPresignedUrl(key);
     res.json({ url });
   } catch (error) {
-    console.error('Error during getting image-url:', error);
-    res.json({ url: `https://example.com/${key}` });
+    next(error);
   }
 }
 

@@ -1,7 +1,12 @@
 const db = require('../db');
 const { processImageUpload } = require('../services/image_handler');
 const bcrypt = require('bcrypt');
-const { CustomError } = require('../../errors/CustomError');
+const {
+  CustomError,
+  ValidationError,
+  NotFoundError,
+  ForbiddenError
+} = require('../../errors/CustomError');
 
 /**
  * @typedef {Object} UploadImageBody
@@ -38,26 +43,32 @@ const { CustomError } = require('../../errors/CustomError');
  * @param {UploadImageBody} req.body
  * @returns {Promise<void>}
  */
-async function uploadImage(req, res) {
+async function uploadImage(req, res, next) {
   const file = req.file;
   const status = req.body.status;
   const userId = req.userId;
   const anonymousNickname = req.body.anonymousNickname;
   const anonymousPassword = req.body.anonymousPassword;
 
-  if (!userId && (!anonymousNickname || !anonymousPassword)) {
-    return res.status(400).send('Anonymous nickname and password are required!');
-  }
-  if (!file) return res.status(400).send('No file selected!');
-  if (!status) return res.status(400).send('Status is required!');
-
-  const catStatus = parseInt(status, 10);
-  if (isNaN(catStatus) || catStatus < 0 || catStatus > 2) {
-    return res.status(400).send('Invalid status. Must be 0 (good), 1 (concerned), or 2 (critical).');
-  }
-
-  const pool = db.pool;
   try {
+    if (!userId && (!anonymousNickname || !anonymousPassword)) {
+      throw new ValidationError('Anonymous nickname and password are required!');
+    }
+    if (!file) {
+      throw new ValidationError('No file selected!');
+    }
+    if (!status) {
+      throw new ValidationError('Status is required!');
+    }
+
+    const catStatus = parseInt(status, 10);
+    if (isNaN(catStatus) || catStatus < 0 || catStatus > 2) {
+      throw new ValidationError(
+        'Invalid status. Must be 0 (good), 1 (concerned), or 2 (critical).'
+      );
+    }
+
+    const pool = db.pool;
     const pictureId = await processImageUpload(pool, file, catStatus);
     const postId = await db.insertPostToDb(pool, pictureId, userId);
     if (!userId) {
@@ -65,16 +76,7 @@ async function uploadImage(req, res) {
     }
     res.status(201).send('Picture successfully uploaded');
   } catch (err) {
-    console.error('General error in upload:', err);
-
-    if (err instanceof CustomError && err.statusCode) {
-      return res.status(err.statusCode).send(err.message);
-    }
-    if (err.statusCode && Number.isInteger(err.statusCode)) {
-      return res.status(err.statusCode).send(err.message);
-    }
-    
-    res.status(500).send('File upload failed due to errors');
+    next(err);
   }
 }
 
@@ -108,39 +110,42 @@ async function deletePost(req, res, next) {
     const anonymousPassword = req.body.anonymousPassword;
 
     if (!postId) {
-      return res.status(400).send('Post ID is required');
+      throw new ValidationError('Post ID is required');
     }
     const pool = db.pool;
     const post = await db.fetchPostById(pool, postId);
     if (!post) {
-      return res.status(404).send('Post not found');
+      throw new NotFoundError('Post not found');
     }
 
-    if (post.user_id) { 
+    if (post.user_id) {
       if (post.user_id !== userId) {
-        return res.status(403).send('Unauthorized to delete this post');
+        throw new ForbiddenError('Unauthorized to delete this post');
       }
     } else {
       if (!anonymousPassword) {
-        return res.status(400).send('Anonymous password is required');
+        throw new ValidationError('Anonymous password is required');
       }
       const anonymousPost = await db.fetchAnonymousPostById(pool, postId);
       if (!anonymousPost) {
-        return res.status(404).send('Anonymous post not found');
+        throw new NotFoundError('Anonymous post not found');
       }
-      const isPasswordValid = await bcrypt.compare(anonymousPassword, anonymousPost.anonymous_password_hash);
+      const isPasswordValid = await bcrypt.compare(
+        anonymousPassword,
+        anonymousPost.anonymous_password_hash
+      );
       if (!isPasswordValid) {
-        return res.status(403).send('Unauthorized to delete this post');
+        throw new ForbiddenError('Unauthorized to delete this post');
       }
     }
     //TODO: Add transaction to delete the picture and post together
     const pictureResult = await db.deletePictureById(pool, post.picture_id);
     if (pictureResult === 0) {
-      return res.status(500).send('Failed to delete picture');
+      throw new CustomError('Failed to delete picture', 500);
     }
     const postResult = await db.deletePost(pool, postId);
     if (postResult === 0) {
-      return res.status(500).send('Failed to delete post');
+      throw new CustomError('Failed to delete post', 500);
     }
     res.status(200).send('Post deleted successfully');
   } catch (err) {
