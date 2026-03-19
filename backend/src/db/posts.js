@@ -92,7 +92,16 @@ async function deletePost(pool, postId) {
  * @returns {Promise<Object[]>} Array of post rows.
  */
 async function fetchPosts(pool, limit = 10, offset = 0) {
-  const query = `SELECT * FROM posts WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+  const query = `
+    SELECT
+      posts.*,
+      pictures.picture_key
+    FROM posts
+    JOIN pictures ON pictures.id = posts.picture_id
+    WHERE posts.deleted_at IS NULL
+    ORDER BY posts.created_at DESC
+    LIMIT ? OFFSET ?
+  `;
   const [result] = await pool.query(query, [limit, offset]);
   return result;
 }

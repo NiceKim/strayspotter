@@ -36,7 +36,7 @@ export default function GalleryPage() {
       const posts = await fetchGalleryImages(12)
       const items = await Promise.all(
         posts.map(async (post) => {
-          const imageData = await fetchImageUrl(post.picture_id)
+          const imageData = await fetchImageUrl(post.picture_key)
           return {
             id: String(post.id),
             src: imageData.url,
@@ -97,7 +97,7 @@ export default function GalleryPage() {
 
       const newItems = await Promise.all(
         newPosts.map(async (post) => {
-          const imageData = await fetchImageUrl(post.picture_id)
+          const imageData = await fetchImageUrl(post.picture_key)
           return {
             id: String(post.id),
             src: imageData.url,

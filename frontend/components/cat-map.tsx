@@ -85,7 +85,7 @@ export default function CatMap() {
     }
     for (const post of posts) {
       try {
-        const data = await fetchImageUrl(post.picture_id)
+        const data = await fetchImageUrl(post.picture_key)
         const gpsData = await fetchGPSByID(post.picture_id)
         const latitude = gpsData.latitude
         const longitude = gpsData.longitude

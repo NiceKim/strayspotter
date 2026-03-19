@@ -45,27 +45,27 @@ async function processImageUpload(connection, file, catStatus) {
     console.error("Error getting the metadata:", err);
   }
 
-  const pictureId = await db.insertPictureToDb(connection, pictureData);
+  let fileToUpload = {
+    buffer: file.buffer,
+    mimetype: file.mimetype,
+    originalname: file.originalname
+  };
+  let ext = path.extname(file.originalname || '').toLowerCase();
+  const isHeicByExt = ext === '.heic';
+  const mt = (file.mimetype || '').toLowerCase();
+  const isHeicByMimetype = mt.includes('heic') || mt.includes('heif');
+  const isHeicBranch = isHeicByExt || isHeicByMimetype;
+  if (isHeicBranch) {
+    fileToUpload = await convertHeicToJpg(fileToUpload);
+    ext = '.jpg';
+  }
+
+  const {pictureKey, pictureId} = await db.insertPictureToDb(connection, pictureData, ext);
  
   try {
-    let fileToUpload = {
-      buffer: file.buffer,
-      mimetype: file.mimetype,
-      originalname: file.originalname
-    };
 
-    let ext = path.extname(file.originalname || '').toLowerCase();
-    const isHeicByExt = ext === '.heic';
-    const mt = (file.mimetype || '').toLowerCase();
-    const isHeicByMimetype = mt.includes('heic') || mt.includes('heif');
-    const isHeicBranch = isHeicByExt || isHeicByMimetype;
-
-    if (isHeicBranch) {
-      fileToUpload = await convertHeicToJpg(fileToUpload);
-      ext = '.jpg';
-    }
     if (fileToUpload.mimetype.startsWith('image/')) {
-      fileToUpload.uniquename = 'k' + pictureId + (ext || '.jpg');
+      fileToUpload.uniquename = pictureKey;
       await s3Service.uploadToCloud(fileToUpload);
     } else {
       throw new Error("Not an accepted Image format");

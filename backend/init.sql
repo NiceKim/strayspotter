@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS pictures (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    picture_key VARCHAR(64) NOT NULL UNIQUE,
     latitude FLOAT,
     longitude FLOAT,
     date_taken DATETIME,

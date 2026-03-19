@@ -37,7 +37,7 @@ export default function Home() {
         const posts = await fetchGalleryImages(4)
         const imageUrls = await Promise.all(
           posts.map(async (post) => {
-            const imageData = await fetchImageUrl(post.picture_id)
+            const imageData = await fetchImageUrl(post.picture_key)
             return imageData.url
           }),
         )

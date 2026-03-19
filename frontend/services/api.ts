@@ -73,6 +73,7 @@ export async function fetchWithAuth(url: string, init: RequestInit = {}): Promis
 export interface GalleryPost {
   id: number
   picture_id: number
+  picture_key: string
   user_id: number | null
   body: string | null
   created_at: string
@@ -104,12 +105,11 @@ export async function fetchGalleryImages(
 }
 
 /**
- * Fetches presigned image URL by picture id (builds key as k{pictureId}.jpg internally).
- * @param pictureId Picture id from post.picture_id
+ * Fetches presigned image URL by object key.
+ * @param key S3 object key (e.g. {picture_key}.jpg)
  * @returns Object containing image URL
  */
-export async function fetchImageUrl(pictureId: number): Promise<{ url: string }> {
-  const key = `k${pictureId}.jpg`
+export async function fetchImageUrl(key: string): Promise<{ url: string }> {
   try {
     const response = await fetch(`${API_URL}/image-url?key=${encodeURIComponent(key)}`)
     if (!response.ok) {

@@ -2,6 +2,7 @@
  * Database operations for pictures table.
  */
 const { CustomError } = require('../../errors/CustomError.js');
+const crypto = require('crypto');
 
 /**
  * Inserts a new picture record into the database.
@@ -15,21 +16,23 @@ const { CustomError } = require('../../errors/CustomError.js');
  * @param {number} data.catStatus - Cat status value stored with the picture.
  * @returns {Promise<number>} ID of the newly created picture.
  */
-async function insertPictureToDb(pool, data) {
+async function insertPictureToDb(pool, data, ext='.jpg') {
   if (!data.date) {
     data.date = new Date();
   }
+  const key = crypto.randomUUID() + ext;
   const query = `INSERT INTO pictures
-    (latitude, longitude, date_taken, district_no, cat_status) 
-    VALUES (?, ?, ?, ?, ?)`;
+    (latitude, longitude, date_taken, district_no, cat_status, picture_key) 
+    VALUES (?, ?, ?, ?, ?, ?)`;
   const [result] = await pool.query(query, [
     data.latitude,
     data.longitude,
     data.date,
     data.districtNo,
-    data.catStatus
+    data.catStatus,
+    key
   ]);
-  return result.insertId;
+  return {pictureKey: key, pictureId: result.insertId};
 }
 
 /**
