@@ -6,6 +6,10 @@ const oneMap = require('../lib/oneMap.js');
 const exifr = require('exifr');
 const heicConvert = require('heic-convert');
 const path = require('path');
+const {
+  ValidationError,
+  PayloadTooLargeError
+} = require('../../errors/CustomError');
 
 /**
  * Handles the full image upload process including metadata extraction, reverse geocoding,
@@ -19,6 +23,8 @@ const path = require('path');
  * @throws {Error} Throws if the image format is not accepted or cloud upload fails
  */
 async function processImageUpload(connection, file, catStatus) {
+  validateFile(file);
+  // Initialize picture data with default values
   const pictureData = {
     latitude : null,
     longitude : null,
@@ -28,7 +34,7 @@ async function processImageUpload(connection, file, catStatus) {
   };
 
   try {
-    // Extract metadata from picture
+    // update picture data with metadata from picture
     const exifData = await exifr.parse(file.buffer);
     if (exifData) {
       pictureData.latitude = exifData.latitude;
@@ -42,7 +48,7 @@ async function processImageUpload(connection, file, catStatus) {
       );
     }
   } catch (err) {
-    console.error("Error getting the metadata:", err);
+    console.error("Error getting the metadata:", err); // continue with default values
   }
 
   let fileToUpload = {
@@ -63,13 +69,8 @@ async function processImageUpload(connection, file, catStatus) {
   const {pictureKey, pictureId} = await db.insertPictureToDb(connection, pictureData, ext);
  
   try {
-
-    if (fileToUpload.mimetype.startsWith('image/')) {
-      fileToUpload.uniquename = pictureKey;
-      await s3Service.uploadToCloud(fileToUpload);
-    } else {
-      throw new Error("Not an accepted Image format");
-    }
+    fileToUpload.uniquename = pictureKey;
+    await s3Service.uploadToCloud(fileToUpload);
   } catch (error) {
     console.error("Error during upload process:", error);
     console.log("Deleting picture from DB with ID:", pictureId);
@@ -99,6 +100,20 @@ async function convertHeicToJpg(file) {
 }
 
 
+function validateFile(file) {
+  if (!file) {
+    throw new ValidationError("File is required");
+  }
+  if (!file.buffer) {
+    throw new ValidationError("File buffer is required");
+  }
+  if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    throw new ValidationError("File mimetype is required and must be an image");
+  }
+  if (file.buffer.length > 10 * 1024 * 1024) {
+    throw new PayloadTooLargeError("File size is too large");
+  }
+}
 module.exports = {
   processImageUpload
 };

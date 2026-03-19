@@ -19,4 +19,32 @@ class NotFoundError extends CustomError {
   }
 }
 
-module.exports = { CustomError, ValidationError, NotFoundError };
+class ForbiddenError extends CustomError {
+  constructor(message = 'Forbidden') {
+    super(message, 403);
+    this.name = 'ForbiddenError';
+  }
+}
+
+class UnauthorizedError extends CustomError {
+  constructor(message = 'Unauthorized') {
+    super(message, 401);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+class PayloadTooLargeError extends CustomError {
+  constructor(message = 'Payload too large') {
+    super(message, 413);
+    this.name = 'PayloadTooLargeError';
+  }
+}
+
+module.exports = {
+  CustomError,
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+  UnauthorizedError,
+  PayloadTooLargeError
+};

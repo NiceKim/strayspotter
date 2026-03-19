@@ -1,6 +1,7 @@
 const db = require('../db');
 const { processImageUpload } = require('../services/image_handler');
 const bcrypt = require('bcrypt');
+const { CustomError } = require('../../errors/CustomError');
 
 /**
  * @typedef {Object} UploadImageBody
@@ -65,7 +66,15 @@ async function uploadImage(req, res) {
     res.status(201).send('Picture successfully uploaded');
   } catch (err) {
     console.error('General error in upload:', err);
-    res.status(500).send(err.message || 'File upload failed due to errors');
+
+    if (err instanceof CustomError && err.statusCode) {
+      return res.status(err.statusCode).send(err.message);
+    }
+    if (err.statusCode && Number.isInteger(err.statusCode)) {
+      return res.status(err.statusCode).send(err.message);
+    }
+    
+    res.status(500).send('File upload failed due to errors');
   }
 }
 
