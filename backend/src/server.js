@@ -13,6 +13,10 @@ const errorHandler = require('./middleware/errorHandler');
 app.use(errorHandler);
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
+const { generalLimiter } = require('./middleware/rateLimiters');
+app.use(generalLimiter);
+app.set('trust proxy', 1);
+const db = require('./db');
 
 // API documentation setup
 const swaggerUi = require('swagger-ui-express');
@@ -36,11 +40,40 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`API is available at http://${HOST}:${PORT}${API_PREFIX}`);
 });
 
-process.on('SIGINT', () => {
+let isShuttingDown = false;
+let forceShutdownTimer = null;
+
+const shutdown = () => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
   console.log('Gracefully shutting down...');
-  db.pool.end();
+
+  // Stop accepting new connections first.
   server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
+    if (forceShutdownTimer) clearTimeout(forceShutdownTimer);
+
+    db.pool
+      .end()
+      .then(() => {
+        console.log('Server closed');
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error('Error while closing DB pool:', err);
+        process.exit(1);
+      });
   });
-});
+
+  // If something hangs (e.g., active connections/queries), force exit.
+  forceShutdownTimer = setTimeout(() => {
+    console.error('Forcing shutdown...');
+    process.exit(1);
+  }, 10000);
+  if (typeof forceShutdownTimer.unref === 'function') {
+    forceShutdownTimer.unref();
+  }
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
