@@ -104,6 +104,9 @@ async function uploadImage(req, res, next) {
  * @returns {Promise<void>}
  */
 async function deletePost(req, res, next) {
+  const pool = db.pool;
+  let connection;
+
   try {
     const userId = req.userId;
     const postId = req.params.id;
@@ -112,7 +115,7 @@ async function deletePost(req, res, next) {
     if (!postId) {
       throw new ValidationError('Post ID is required');
     }
-    const pool = db.pool;
+
     const post = await db.fetchPostById(pool, postId);
     if (!post) {
       throw new NotFoundError('Post not found');
@@ -126,10 +129,12 @@ async function deletePost(req, res, next) {
       if (!anonymousPassword) {
         throw new ValidationError('Anonymous password is required');
       }
+
       const anonymousPost = await db.fetchAnonymousPostById(pool, postId);
       if (!anonymousPost) {
         throw new NotFoundError('Anonymous post not found');
       }
+
       const isPasswordValid = await bcrypt.compare(
         anonymousPassword,
         anonymousPost.anonymous_password_hash
@@ -138,18 +143,29 @@ async function deletePost(req, res, next) {
         throw new ForbiddenError('Unauthorized to delete this post');
       }
     }
-    //TODO: Add transaction to delete the picture and post together
-    const pictureResult = await db.deletePictureById(pool, post.picture_id);
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const pictureResult = await db.deletePictureById(connection, post.picture_id);
     if (pictureResult === 0) {
       throw new CustomError('Failed to delete picture', 500);
     }
-    const postResult = await db.deletePost(pool, postId);
+
+    const postResult = await db.deletePost(connection, postId);
     if (postResult === 0) {
       throw new CustomError('Failed to delete post', 500);
     }
+
+    await connection.commit();
     res.status(200).send('Post deleted successfully');
   } catch (err) {
+    if (connection) {
+      await connection.rollback().catch(() => {});
+    }
     next(err);
+  } finally {
+    if (connection) connection.release();
   }
 }
 
