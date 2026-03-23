@@ -19,7 +19,7 @@ const {
  * @param {Object} file - File object containing image data and mimetype
  * @param {number} catStatus - Cat status (0=good, 1=concerned, 2=critical). Must be validated before calling this function.
  *
- * @returns {Promise<number>} The ID of the inserted picture record
+ * @returns {Promise<{pictureKey: string, pictureId: number}>} The key and ID of the inserted picture record
  * @throws {Error} Throws if the image format is not accepted or cloud upload fails
  */
 async function processImageUpload(connection, file, catStatus) {
@@ -73,12 +73,9 @@ async function processImageUpload(connection, file, catStatus) {
     await s3Service.uploadToCloud(fileToUpload);
   } catch (error) {
     console.error("Error during upload process:", error);
-    console.log("Deleting picture from DB with ID:", pictureId);
-    await db.deletePictureById(connection, pictureId);
-    console.log("Deleted picture from DB with ID:", pictureId);
     throw error;
   }
-  return pictureId;
+  return {pictureKey, pictureId};
 }
 
 /**

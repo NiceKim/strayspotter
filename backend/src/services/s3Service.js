@@ -1,4 +1,4 @@
-const { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const bucket_name = process.env.NODE_ENV === 'production' ? process.env.PROD_BUCKET : process.env.DEV_BUCKET;
@@ -63,8 +63,18 @@ async function uploadToCloud(file) {
   console.log(`File uploaded successfully at https://${bucket_name}.s3.amazonaws.com/${params.Key}`);
 }
 
+async function deleteFromCloud(key) {
+  const params = {
+    Bucket: bucket_name,
+    Key: GALLERY_PREFIX + key
+  };
+  const command = new DeleteObjectCommand(params);
+  await s3Client.send(command);
+}
+
 module.exports = {
   listImageKeys,
   getPresignedUrl,
-  uploadToCloud
+  uploadToCloud,
+  deleteFromCloud
 };

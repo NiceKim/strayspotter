@@ -1,6 +1,7 @@
 const db = require('../db');
 const { processImageUpload } = require('../services/image_handler');
 const bcrypt = require('bcrypt');
+const s3Service = require('../services/s3Service');
 const {
   CustomError,
   ValidationError,
@@ -44,6 +45,10 @@ const {
  * @returns {Promise<void>}
  */
 async function uploadImage(req, res, next) {
+  const pool = db.pool;
+  let connection;
+  let pictureKey = null;
+
   const file = req.file;
   const status = req.body.status;
   const userId = req.userId;
@@ -68,15 +73,30 @@ async function uploadImage(req, res, next) {
       );
     }
 
-    const pool = db.pool;
-    const pictureId = await processImageUpload(pool, file, catStatus);
-    const postId = await db.insertPostToDb(pool, pictureId, userId);
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+    let pictureId;
+    ({ pictureId, pictureKey} = await processImageUpload(connection, file,catStatus));
+    const postId = await db.insertPostToDb(connection, pictureId, userId);
     if (!userId) {
-      await db.insertAnonymousUserDataToDb(pool, postId, anonymousNickname, anonymousPassword);
+      await db.insertAnonymousUserDataToDb(connection, postId, anonymousNickname, anonymousPassword);
     }
+    await connection.commit();
     res.status(201).send('Picture successfully uploaded');
   } catch (err) {
+    if (connection) {
+      await connection.rollback().catch(() => {});
+    }
+    if (pictureKey) {
+      try {
+        await s3Service.deleteFromCloud(pictureKey);
+      } catch (cleanupErr) {
+        console.error('Failed to clean up uploaded S3 object:', cleanupErr);
+      }
+    }
     next(err);
+  } finally {
+    if (connection) connection.release();
   }
 }
 
