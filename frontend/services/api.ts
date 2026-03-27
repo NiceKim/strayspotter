@@ -21,6 +21,44 @@ export function setAuthCallbacks(callbacks: AuthCallbacks | null) {
   authCallbacks = callbacks
 }
 
+/**
+ * Parses API error responses safely.
+ * - Prefers JSON { message }
+ * - Falls back to plain text
+ * - Strips noisy HTML error pages into a clean message
+ */
+async function parseApiErrorMessage(response: Response, fallbackMessage: string): Promise<string> {
+  const rawText = await response.text()
+  if (!rawText) return fallbackMessage
+
+  try {
+    const data = JSON.parse(rawText) as { message?: string }
+    if (data?.message) return data.message
+  } catch {
+    // Not JSON; continue parsing text/HTML.
+  }
+
+  // If server returned an HTML error page, extract useful text only.
+  if (rawText.includes("<!DOCTYPE html") || rawText.includes("<html")) {
+    const unauthorizedMatch = rawText.match(/UnauthorizedError:\s*([^<\n]+)/i)
+    if (unauthorizedMatch?.[1]) return unauthorizedMatch[1].trim()
+
+    const preMatch = rawText.match(/<pre>([\s\S]*?)<\/pre>/i)
+    if (preMatch?.[1]) {
+      const cleaned = preMatch[1]
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/<[^>]+>/g, "")
+        .trim()
+      if (cleaned) return cleaned.split("\n")[0].trim()
+    }
+
+    return fallbackMessage
+  }
+
+  return rawText.trim() || fallbackMessage
+}
+
 /** Decodes JWT payload (no verification - server validates). Returns exp in seconds or null. */
 export function getTokenExpiry(token: string): number | null {
   try {
@@ -329,14 +367,7 @@ export async function register(
   })
 
   if (!response.ok) {
-    const text = await response.text()
-    let message = "Failed to register"
-    try {
-      const data = text ? JSON.parse(text) : {}
-      if (data.message) message = data.message
-    } catch {
-      if (text) message = text
-    }
+    const message = await parseApiErrorMessage(response, "Failed to register")
     throw new Error(message)
   }
 
@@ -357,14 +388,7 @@ export async function login(accountId: string, password: string): Promise<AuthRe
   })
 
   if (!response.ok) {
-    const text = await response.text()
-    let message = "Failed to login"
-    try {
-      const data = text ? JSON.parse(text) : {}
-      if (data.message) message = data.message
-    } catch {
-      if (text) message = text
-    }
+    const message = await parseApiErrorMessage(response, "Failed to login")
     throw new Error(message)
   }
 
@@ -381,14 +405,7 @@ export async function refresh(): Promise<string> {
   })
 
   if (!response.ok) {
-    const text = await response.text()
-    let message = "Failed to refresh token"
-    try {
-      const data = text ? JSON.parse(text) : {}
-      if (data.message) message = data.message
-    } catch {
-      if (text) message = text
-    }
+    const message = await parseApiErrorMessage(response, "Failed to refresh token")
     const err = new Error(message) as Error & { status?: number }
     err.status = response.status
     throw err
@@ -416,14 +433,7 @@ export async function fetchUserDetails(): Promise<UserDetails> {
       // Token is valid but user no longer exists (e.g. DB reset). Clear local auth to avoid "logged-in but broken" UI.
       authCallbacks?.logout()
     }
-    const text = await response.text()
-    let message = "Failed to fetch user details"
-    try {
-      const data = text ? JSON.parse(text) : {}
-      if (data.message) message = data.message
-    } catch {
-      if (text) message = text
-    }
+    const message = await parseApiErrorMessage(response, "Failed to fetch user details")
     const err = new Error(message) as Error & { status?: number }
     err.status = response.status
     throw err
