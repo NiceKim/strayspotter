@@ -15,6 +15,7 @@ type GalleryItem = {
   id: string
   src: string
   createdAt: string
+  catStatus: 0 | 1 | 2
   userId: number | null
   accountId: string | null
 }
@@ -31,6 +32,19 @@ export default function GalleryPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const { refreshTrigger } = useDataRefresh()
 
+  const getCatStatusLabel = (status: 0 | 1 | 2) => {
+    switch (status) {
+      case 0:
+        return "🐱 Good"
+      case 1:
+        return "⚠️ Concerned"
+      case 2:
+        return "🚨 Critical"
+      default:
+        return "❓ Unknown"
+    }
+  }
+
   const loadImages = async () => {
     setIsLoading(true)
     try {
@@ -42,6 +56,7 @@ export default function GalleryPage() {
             id: String(post.id),
             src: imageData.url,
             createdAt: post.created_at,
+            catStatus: post.cat_status,
             userId: post.user_id,
             accountId: post.account_id,
           }
@@ -104,6 +119,7 @@ export default function GalleryPage() {
             id: String(post.id),
             src: imageData.url,
             createdAt: post.created_at,
+            catStatus: post.cat_status,
             userId: post.user_id,
             accountId: post.account_id,
           }
@@ -202,6 +218,9 @@ export default function GalleryPage() {
                     >
                       <p className="text-lg font-semibold">
                         {new Date(item.createdAt).toISOString().slice(0, 10)}
+                      </p>
+                      <p className="mt-1 text-sm">
+                        {getCatStatusLabel(item.catStatus)}
                       </p>
                       <p className="mt-2 text-md">
                         {item.accountId ? `@${item.accountId}` : "Anonymous"}

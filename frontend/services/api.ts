@@ -112,6 +112,7 @@ export interface GalleryPost {
   id: number
   picture_id: number
   picture_key: string
+  cat_status: 0 | 1 | 2
   user_id: number | null
   account_id: string | null
   created_at: string
@@ -121,7 +122,7 @@ export interface GalleryPost {
  * Fetches gallery posts from the backend (DB-based).
  * @param maxKeys Maximum number of posts to fetch
  * @param offset Number of posts to skip (for pagination)
- * @returns Array of post objects (id, picture_id, picture_key, user_id, account_id, created_at)
+ * @returns Array of post objects (id, picture_id, picture_key, cat_status, user_id, account_id, created_at)
  */
 export async function fetchGalleryImages(
   maxKeys = 100,

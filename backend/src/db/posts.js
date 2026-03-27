@@ -99,6 +99,7 @@ async function fetchPosts(pool, limit = 10, offset = 0) {
       posts.user_id,
       posts.created_at,
       pictures.picture_key,
+      pictures.cat_status,
       users.account_id
     FROM posts
     JOIN pictures ON pictures.id = posts.picture_id
