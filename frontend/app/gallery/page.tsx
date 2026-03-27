@@ -16,6 +16,7 @@ type GalleryItem = {
   src: string
   createdAt: string
   userId: number | null
+  accountId: string | null
 }
 
 export default function GalleryPage() {
@@ -42,6 +43,7 @@ export default function GalleryPage() {
             src: imageData.url,
             createdAt: post.created_at,
             userId: post.user_id,
+            accountId: post.account_id,
           }
         }),
       )
@@ -103,6 +105,7 @@ export default function GalleryPage() {
             src: imageData.url,
             createdAt: post.created_at,
             userId: post.user_id,
+            accountId: post.account_id,
           }
         }),
       )
@@ -201,7 +204,7 @@ export default function GalleryPage() {
                         {new Date(item.createdAt).toISOString().slice(0, 10)}
                       </p>
                       <p className="mt-2 text-md">
-                        {item.userId ?? "Anonymous"}
+                        {item.accountId ? `@${item.accountId}` : "Anonymous"}
                       </p>
                       {item.userId === null && (
                         <Button
@@ -213,7 +216,7 @@ export default function GalleryPage() {
                             openDeleteModal(item)
                           }}
                         >
-                          삭제
+                          Delete
                         </Button>
                       )}
                     </div>

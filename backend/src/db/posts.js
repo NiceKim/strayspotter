@@ -94,10 +94,15 @@ async function deletePost(pool, postId) {
 async function fetchPosts(pool, limit = 10, offset = 0) {
   const query = `
     SELECT
-      posts.*,
-      pictures.picture_key
+      posts.id,
+      posts.picture_id,
+      posts.user_id,
+      posts.created_at,
+      pictures.picture_key,
+      users.account_id
     FROM posts
     JOIN pictures ON pictures.id = posts.picture_id
+    LEFT JOIN users ON users.id = posts.user_id
     WHERE posts.deleted_at IS NULL
     ORDER BY posts.created_at DESC
     LIMIT ? OFFSET ?

@@ -14,14 +14,14 @@ const { ValidationError } = require('../../errors/CustomError');
  */
 
 /**
- * Retrieves a list of posts from the database (id, picture_id, body, created_at, user_id, etc.).
- * Frontend builds image key as `k{picture_id}.jpg` when requesting presigned URL.
+ * Retrieves gallery posts from the database.
+ * Each row includes post identifiers, picture key, optional uploader account ID, and creation time.
  *
  * Request:
  * - Query: {@link ListImagesQuery}
  *
  * Response:
- * - 200 OK: Array of post rows (id, picture_id, body, created_at, user_id, ...)
+ * - 200 OK: Array of post rows (id, picture_id, picture_key, user_id, account_id, created_at)
  * - On error: empty array []
  *
  * @param {ListImagesQuery} req.query
