@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  * Renders User icon trigger + dropdown with email, joined date, and Log out.
  */
 export default function ProfilePopover() {
-  const { token, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -57,6 +57,13 @@ export default function ProfilePopover() {
           {!detailsLoading && !detailsError && userDetails && (
             <>
               <div className="space-y-1 text-sm">
+                <p className="text-gray-600 dark:text-gray-400">
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    Account ID
+                  </span>
+                  <br />
+                  {userDetails.accountId || user?.accountId || "—"}
+                </p>
                 <p className="text-gray-600 dark:text-gray-400">
                   <span className="font-medium text-gray-900 dark:text-white">
                     Email
