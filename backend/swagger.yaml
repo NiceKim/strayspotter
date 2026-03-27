@@ -9,10 +9,10 @@ servers:
 paths:
   /api/images:
     get:
-      summary: Retrieves a list of image keys from the cloud
+      summary: Retrieves a paginated list of posts for gallery rendering
       description: |
-        Returns up to a specified number of image keys based on the client's query parameter.
-        The image keys are sorted in descending order of their numerical value extracted from the key names.
+        Returns post rows used by the gallery, including picture key and optional uploader account ID.
+        Results are ordered by post creation time in descending order.
       parameters:
         - in: query
           name: maxKeys
@@ -21,17 +21,46 @@ paths:
             type: integer
             default: 100
             example: 10
-          description: The number of image keys to return. Defaults to 100 if omitted.
+          description: Maximum number of posts to return. Defaults to 100 if omitted.
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            example: 0
+          description: Number of posts to skip for pagination.
       responses:
         '200':
-          description: A sorted list of image keys from the cloud. On internal errors, an empty array is returned.
+          description: A list of post objects for gallery rendering.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: string
-                  description: The key of an image stored in the cloud.
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID.
+                    picture_id:
+                      type: integer
+                      description: Associated picture ID.
+                    picture_key:
+                      type: string
+                      description: S3 object key for the picture.
+                    user_id:
+                      type: integer
+                      nullable: true
+                      description: Owning user ID, or null for anonymous posts.
+                    account_id:
+                      type: string
+                      nullable: true
+                      description: Uploader account ID from users table, or null for anonymous posts.
+                    created_at:
+                      type: string
+                      format: date-time
+                      description: Post creation timestamp.
   /api/image-url:
     get:
       summary: Generates a pre-signed URL.

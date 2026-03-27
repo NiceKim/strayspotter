@@ -1,7 +1,7 @@
 /**
  * API routes - mounts all sub-routers under /api
- * Each sub-router defines its own paths (e.g. /images, /upload)
- * Final paths: /api/images, /api/upload, etc.
+ * Each sub-router defines its own paths (e.g. /images, /pictures/*, /posts/*, /users/*)
+ * Final paths are exposed under /api.
  */
 const express = require('express');
 const router = express.Router();
