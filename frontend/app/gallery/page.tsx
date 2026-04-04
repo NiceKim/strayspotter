@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
 import AuthModal from "@/components/auth-modal"
-import { fetchGalleryImages, fetchImageUrl, deletePost } from "@/services/api"
+import { fetchGalleryImages, fetchImageUrl, deletePost, fetchPostLikes, likePost, unlikePost } from "@/services/api"
 import { useDataRefresh } from "@/contexts/DataRefreshContext"
+import { useAuth } from "@/contexts/AuthContext"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -18,6 +20,9 @@ type GalleryItem = {
   catStatus: 0 | 1 | 2
   userId: number | null
   accountId: string | null
+  likeCount: number
+  likedByMe: boolean
+  isLikeLoading: boolean
 }
 
 export default function GalleryPage() {
@@ -31,6 +36,7 @@ export default function GalleryPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const { refreshTrigger } = useDataRefresh()
+  const { isAuthenticated } = useAuth()
 
   const getCatStatusLabel = (status: 0 | 1 | 2) => {
     switch (status) {
@@ -51,7 +57,10 @@ export default function GalleryPage() {
       const posts = await fetchGalleryImages(12)
       const items = await Promise.all(
         posts.map(async (post) => {
-          const imageData = await fetchImageUrl(post.picture_key)
+          const [imageData, likeCount] = await Promise.all([
+            fetchImageUrl(post.picture_key),
+            fetchPostLikes(post.id),
+          ])
           return {
             id: String(post.id),
             src: imageData.url,
@@ -59,6 +68,9 @@ export default function GalleryPage() {
             catStatus: post.cat_status,
             userId: post.user_id,
             accountId: post.account_id,
+            likeCount,
+            likedByMe: false,
+            isLikeLoading: false,
           }
         }),
       )
@@ -114,7 +126,10 @@ export default function GalleryPage() {
 
       const newItems = await Promise.all(
         newPosts.map(async (post) => {
-          const imageData = await fetchImageUrl(post.picture_key)
+          const [imageData, likeCount] = await Promise.all([
+            fetchImageUrl(post.picture_key),
+            fetchPostLikes(post.id),
+          ])
           return {
             id: String(post.id),
             src: imageData.url,
@@ -122,6 +137,9 @@ export default function GalleryPage() {
             catStatus: post.cat_status,
             userId: post.user_id,
             accountId: post.account_id,
+            likeCount,
+            likedByMe: false,
+            isLikeLoading: false,
           }
         }),
       )
@@ -129,6 +147,56 @@ export default function GalleryPage() {
       setGalleryItems([...galleryItems, ...newItems])
     } catch (error) {
       console.error("Error loading more images:", error)
+    }
+  }
+
+  const setLikeLoading = (itemId: string, isLikeLoading: boolean) => {
+    setGalleryItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId ? { ...item, isLikeLoading } : item
+      )
+    )
+  }
+
+  const handleLikeClick = async (itemId: string) => {
+    const target = galleryItems.find((item) => item.id === itemId)
+    if (!target || target.isLikeLoading) return
+
+    if (!isAuthenticated) {
+      openAuthModal()
+      return
+    }
+
+    const postId = Number(itemId)
+    const shouldLike = !target.likedByMe
+    setLikeLoading(itemId, true)
+
+    try {
+      const result = shouldLike ? await likePost(postId) : await unlikePost(postId)
+      setGalleryItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== itemId) return item
+          const nextCount = result.changed
+            ? shouldLike
+              ? item.likeCount + 1
+              : Math.max(0, item.likeCount - 1)
+            : item.likeCount
+          return {
+            ...item,
+            likedByMe: shouldLike,
+            likeCount: nextCount,
+          }
+        })
+      )
+    } catch (error) {
+      const status = (error as { status?: number })?.status
+      if (status === 401) {
+        openAuthModal()
+      } else {
+        console.error("Failed to update like:", error)
+      }
+    } finally {
+      setLikeLoading(itemId, false)
     }
   }
 
@@ -197,13 +265,13 @@ export default function GalleryPage() {
               {galleryItems.map((item) => (
                 <div
                   key={item.id}
-                  className="overflow-hidden rounded-3xl shadow-xl h-[500px] flex items-center justify-center bg-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
+                  className="overflow-hidden rounded-3xl shadow-xl h-[500px] bg-white transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation()
                     setActiveId((prev) => (prev === item.id ? null : item.id))
                   }}
                 >
-                  <div className="relative w-full h-full">
+                  <div className="relative w-full h-[430px]">
                     <Image
                       src={item.src || "/placeholder.svg"}
                       alt={`Cat ${item.id}`}
@@ -239,6 +307,26 @@ export default function GalleryPage() {
                         </Button>
                       )}
                     </div>
+                  </div>
+                  <div
+                    className="flex h-[70px] items-center justify-center gap-2 border-t border-gray-100 bg-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className={`inline-flex items-center justify-center rounded-full p-2 transition ${
+                        item.likedByMe ? "text-red-500" : "text-gray-500 hover:text-red-500"
+                      }`}
+                      onClick={() => handleLikeClick(item.id)}
+                      disabled={item.isLikeLoading}
+                      aria-label={item.likedByMe ? "Unlike post" : "Like post"}
+                    >
+                      <Heart
+                        className="h-6 w-6"
+                        fill={item.likedByMe ? "currentColor" : "none"}
+                      />
+                    </button>
+                    <span className="text-sm font-medium text-gray-700">{item.likeCount}</span>
                   </div>
                 </div>
               ))}

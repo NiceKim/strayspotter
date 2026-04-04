@@ -189,7 +189,119 @@ async function deletePost(req, res, next) {
   }
 }
 
+/**
+ * Returns the number of likes for a post.
+ *
+ * Request:
+ * - Params:
+ *   - id: Post ID
+ *
+ * Response:
+ * - 200 OK: like count as a number
+ * - 400 Bad Request: Missing post ID
+ *
+ * @returns {Promise<void>}
+ */
+async function getLikes(req, res, next) {
+  const pool = db.pool;
+  try {
+    const postId = req.params.id;
+    if (!postId) {
+      throw new ValidationError('Post ID is required');
+    }
+    const likes = await db.fetchLikesByPostId(pool, postId);
+    res.status(200).json(likes);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Marks the current authenticated user as having liked the post.
+ *
+ * Request:
+ * - Headers:
+ *   - Authorization: Bearer token (required)
+ * - Params:
+ *   - id: Post ID
+ *
+ * Behavior:
+ * - Idempotent for already-liked cases.
+ * - Returns `changed: false` when the like already exists.
+ *
+ * Response:
+ * - 200 OK: Like state ensured
+ * - 400 Bad Request: Missing post ID or user ID
+ *
+ * @returns {Promise<void>}
+ */
+async function likePost(req, res, next) {
+  const pool = db.pool;
+  const postId = req.params.id;
+  const userId = req.userId;
+  try {
+    if (!postId) {
+      throw new ValidationError('Post ID is required');
+    }
+    if (!userId) {
+      throw new ValidationError('User ID is required');
+    }
+    const result = await db.likePost(pool, postId, userId);
+    if (result === 0) {
+      res.status(200).json({ changed: false, message: 'Post already liked' });
+      return;
+    }
+    res.status(200).json({ changed: true, message: 'Post liked successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Removes the current authenticated user's like from the post.
+ *
+ * Request:
+ * - Headers:
+ *   - Authorization: Bearer token (required)
+ * - Params:
+ *   - id: Post ID
+ *
+ * Behavior:
+ * - Idempotent for already-unliked cases.
+ * - Returns `changed: false` when no like row existed.
+ *
+ * Response:
+ * - 200 OK: Unlike state ensured
+ * - 400 Bad Request: Missing post ID or user ID
+ *
+ * @returns {Promise<void>}
+ */
+async function unlikePost(req, res, next) {
+  const pool = db.pool;
+  const postId = req.params.id;
+  const userId = req.userId;
+  try {
+    if (!postId) {
+      throw new ValidationError('Post ID is required');
+    }
+    if (!userId) {
+      throw new ValidationError('User ID is required');
+    }
+    const result = await db.unlikePost(pool, postId, userId);
+    if (result === 0) {
+      res.status(200).json({ changed: false, message: 'Post already unliked' });
+      return;
+    }
+    res.status(200).json({ changed: true, message: 'Post unliked successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   uploadImage,
-  deletePost
+  deletePost,
+  getLikes,
+  likePost,
+  unlikePost
 };

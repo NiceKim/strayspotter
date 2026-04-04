@@ -34,7 +34,7 @@ const refreshLimiter = makeLimiter({
 
 
 const postLimiter = makeLimiter({
-  max: 10,
+  max: 50,
   message: 'Too many write requests, please try again later.',
 });
 

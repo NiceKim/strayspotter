@@ -112,6 +112,50 @@ async function fetchPosts(pool, limit = 10, offset = 0) {
   return result;
 }
 
+/**
+ * Fetches like count for a specific post.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} postId - ID of the post.
+ * @returns {Promise<number>} Total number of likes for the post.
+ */
+async function fetchLikesByPostId(pool, postId) {
+  const query = `SELECT COUNT(*) As count FROM likes WHERE post_id = ?`;
+  const [result] = await pool.query(query, [postId]);
+  return result[0].count;
+}
+
+/**
+ * Inserts a like row for a post-user pair.
+ *
+ * Uses MySQL `INSERT IGNORE` so duplicate likes are ignored
+ * without throwing an error.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} postId - ID of the post to like.
+ * @param {number} userId - ID of the user liking the post.
+ * @returns {Promise<number>} Affected rows (1 if inserted, 0 if already liked).
+ */
+async function likePost(pool, postId, userId) {
+  const query = `INSERT IGNORE INTO likes (post_id, user_id) VALUES (?, ?)`;
+  const [result] = await pool.query(query, [postId, userId]);
+  return result.affectedRows;
+}
+
+/**
+ * Deletes a like row for a post-user pair.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} postId - ID of the post to unlike.
+ * @param {number} userId - ID of the user unliking the post.
+ * @returns {Promise<number>} Affected rows (1 if deleted, 0 if already unliked).
+ */
+async function unlikePost(pool, postId, userId) {
+  const query = `DELETE FROM likes WHERE post_id = ? AND user_id = ?`;
+  const [result] = await pool.query(query, [postId, userId]);
+  return result.affectedRows;
+}
+
 
 module.exports = {
   insertPostToDb,
@@ -119,5 +163,8 @@ module.exports = {
   fetchPostById,
   fetchAnonymousPostById,
   deletePost,
-  fetchPosts
+  fetchPosts,
+  fetchLikesByPostId,
+  likePost,
+  unlikePost
 };

@@ -408,6 +408,102 @@ paths:
         '500':
           description: Failed to soft-delete the post or picture.
 
+  /api/posts/{id}/likes:
+    get:
+      summary: Retrieves like count for a post
+      description: Returns the total number of likes for the specified post ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID of the post.
+      responses:
+        '200':
+          description: Successfully retrieved like count.
+          content:
+            application/json:
+              schema:
+                type: integer
+                example: 12
+        '400':
+          description: Missing post ID.
+
+    post:
+      summary: Likes a post
+      description: |
+        Ensures the authenticated user has liked the specified post.
+        This endpoint is idempotent and returns `changed: false` when the user already liked the post.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID of the post.
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+      responses:
+        '200':
+          description: Like state ensured.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  changed:
+                    type: boolean
+                    description: Whether a new like row was created.
+                  message:
+                    type: string
+                    example: Post liked successfully
+        '400':
+          description: Missing post ID or user ID.
+        '401':
+          description: Missing or invalid access token.
+
+    delete:
+      summary: Unlikes a post
+      description: |
+        Ensures the authenticated user has no like on the specified post.
+        This endpoint is idempotent and returns `changed: false` when no like row existed.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID of the post.
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+      responses:
+        '200':
+          description: Unlike state ensured.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  changed:
+                    type: boolean
+                    description: Whether an existing like row was deleted.
+                  message:
+                    type: string
+                    example: Post unliked successfully
+        '400':
+          description: Missing post ID or user ID.
+        '401':
+          description: Missing or invalid access token.
+
   /api/users/register:
     post:
       summary: Registers a new user

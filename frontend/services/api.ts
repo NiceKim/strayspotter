@@ -118,6 +118,11 @@ export interface GalleryPost {
   created_at: string
 }
 
+export interface LikeActionResponse {
+  changed: boolean
+  message: string
+}
+
 /**
  * Fetches gallery posts from the backend (DB-based).
  * @param maxKeys Maximum number of posts to fetch
@@ -339,6 +344,58 @@ export async function deletePost(
     err.status = response.status
     throw err
   }
+}
+
+/**
+ * Fetches the like count for a post.
+ * @param postId Post ID
+ * @returns Total like count
+ */
+export async function fetchPostLikes(postId: number): Promise<number> {
+  const response = await fetch(`${API_URL}/posts/${postId}/likes`)
+  if (!response.ok) {
+    const message = await parseApiErrorMessage(response, "Failed to fetch likes")
+    const err = new Error(message) as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
+  return response.json()
+}
+
+/**
+ * Likes a post as the current authenticated user.
+ * @param postId Post ID
+ * @returns API response with changed flag
+ */
+export async function likePost(postId: number): Promise<LikeActionResponse> {
+  const response = await fetchWithAuth(`${API_URL}/posts/${postId}/likes`, {
+    method: "POST",
+  })
+  if (!response.ok) {
+    const message = await parseApiErrorMessage(response, "Failed to like post")
+    const err = new Error(message) as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
+  return response.json()
+}
+
+/**
+ * Unlikes a post as the current authenticated user.
+ * @param postId Post ID
+ * @returns API response with changed flag
+ */
+export async function unlikePost(postId: number): Promise<LikeActionResponse> {
+  const response = await fetchWithAuth(`${API_URL}/posts/${postId}/likes`, {
+    method: "DELETE",
+  })
+  if (!response.ok) {
+    const message = await parseApiErrorMessage(response, "Failed to unlike post")
+    const err = new Error(message) as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
+  return response.json()
 }
 
 /**
