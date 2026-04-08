@@ -118,6 +118,10 @@ export interface GalleryPost {
   created_at: string
 }
 
+interface FetchGalleryOptions {
+  mine?: boolean
+}
+
 export interface LikeActionResponse {
   changed: boolean
   message: string
@@ -125,18 +129,19 @@ export interface LikeActionResponse {
 
 /**
  * Fetches gallery posts from the backend (DB-based).
- * @param maxKeys Maximum number of posts to fetch
+ * @param limit Maximum number of posts to fetch
  * @param offset Number of posts to skip (for pagination)
  * @returns Array of post objects (id, picture_id, picture_key, cat_status, user_id, account_id, created_at)
  */
 export async function fetchGalleryImages(
-  maxKeys = 100,
-  offset = 0
+  limit = 10,
+  offset = 0,
+  options: FetchGalleryOptions = {}
 ): Promise<GalleryPost[]> {
   try {
-    const response = await fetch(
-      `${API_URL}/images?maxKeys=${maxKeys}&offset=${offset}`
-    )
+    const response = options.mine
+      ? await fetchWithAuth(`${API_URL}/posts/mine?limit=${limit}&offset=${offset}`)
+      : await fetch(`${API_URL}/images?maxKeys=${limit}&offset=${offset}`)
     if (!response.ok) {
       throw new Error("Failed to fetch images")
     }

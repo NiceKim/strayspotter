@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, ImageIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchUserDetails, type UserDetails } from "@/services/api";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  */
 export default function ProfilePopover() {
   const { user, token, logout } = useAuth();
+  const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -88,6 +90,16 @@ export default function ProfilePopover() {
                     : "—"}
                 </p>
               </div>
+              <button
+                onClick={() => {
+                  setProfileOpen(false);
+                  router.push("/gallery?mine=1");
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-100 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+              >
+                <ImageIcon className="h-4 w-4" />
+                My Photos
+              </button>
               <button
                 onClick={() => {
                   logout();

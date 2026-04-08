@@ -360,6 +360,70 @@ paths:
                 type: string
                 description: Error message detailing the cause of the failure.
 
+  /api/posts/mine:
+    get:
+      summary: Retrieves posts created by the authenticated user
+      description: |
+        Returns a paginated list of posts uploaded by the currently authenticated user.
+        Requires a valid Bearer access token.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            example: 10
+          description: Maximum number of posts to return.
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            example: 0
+          description: Number of posts to skip for pagination.
+      responses:
+        '200':
+          description: Successfully retrieved posts for the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID.
+                    picture_id:
+                      type: integer
+                      description: Associated picture ID.
+                    user_id:
+                      type: integer
+                      description: Authenticated user ID.
+                    created_at:
+                      type: string
+                      format: date-time
+                      description: Post creation timestamp.
+                    picture_key:
+                      type: string
+                      description: S3 object key for the picture.
+                    cat_status:
+                      type: integer
+                      enum: [0, 1, 2]
+                      description: Cat status. 0=good, 1=concerned, 2=critical.
+        '401':
+          description: Missing or invalid access token.
+        '500':
+          description: Internal server error while fetching user posts.
+
   /api/posts/{id}:
     delete:
       summary: Deletes a post (soft delete)

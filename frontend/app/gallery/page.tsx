@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 import { Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Navbar from "@/components/navbar"
@@ -26,6 +27,7 @@ type GalleryItem = {
 }
 
 export default function GalleryPage() {
+  const searchParams = useSearchParams()
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
@@ -36,7 +38,8 @@ export default function GalleryPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const { refreshTrigger } = useDataRefresh()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  const isMineMode = searchParams.get("mine") === "1"
 
   const getCatStatusLabel = (status: 0 | 1 | 2) => {
     switch (status) {
@@ -54,7 +57,7 @@ export default function GalleryPage() {
   const loadImages = async () => {
     setIsLoading(true)
     try {
-      const posts = await fetchGalleryImages(12)
+      const posts = await fetchGalleryImages(12, 0, { mine: isMineMode })
       const items = await Promise.all(
         posts.map(async (post) => {
           const [imageData, likeCount] = await Promise.all([
@@ -84,7 +87,7 @@ export default function GalleryPage() {
 
   useEffect(() => {
     loadImages()
-  }, [refreshTrigger])
+  }, [refreshTrigger, isMineMode])
 
   const openUploadModal = () => setIsUploadModalOpen(true)
   const closeUploadModal = () => setIsUploadModalOpen(false)
@@ -121,7 +124,7 @@ export default function GalleryPage() {
   const loadMoreImages = async () => {
     const currentCount = galleryItems.length
     try {
-      const posts = await fetchGalleryImages(currentCount + 6)
+      const posts = await fetchGalleryImages(currentCount + 6, 0, { mine: isMineMode })
       const newPosts = posts.slice(currentCount)
 
       const newItems = await Promise.all(
@@ -252,13 +255,24 @@ export default function GalleryPage() {
 
       <div id="aesthetic" className="mx-auto my-16 max-w-7xl rounded-4xl bg-[#10403B] px-4 py-2 shadow-2xl">
         <div className="rounded-4xl bg-white p-8" onClick={() => setActiveId(null)}>
+          {isMineMode && (
+            <div className="mb-4 text-left">
+              <h2 className="text-xl font-bold text-gray-900">
+                {user?.accountId ? `@ ${user.accountId}` : "My posts"}
+              </h2>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <p className="text-xl">Loading gallery images...</p>
             </div>
           ) : galleryItems.length === 0 ? (
             <div className="flex h-64 items-center justify-center">
-              <p className="text-xl">No images found. Be the first to upload!</p>
+              <p className="text-xl">
+                {isMineMode
+                  ? "No posts found. Upload your first photo!"
+                  : "No images found. Be the first to upload!"}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 py-10 sm:grid-cols-2 lg:grid-cols-3">

@@ -298,10 +298,24 @@ async function unlikePost(req, res, next) {
   }
 }
 
+async function getMyPosts(req, res, next) {
+  const pool = db.pool;
+  const userId = req.userId;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const offset = parseInt(req.query.offset, 10) || 0;
+  try {
+    const posts = await db.fetchPostsByUserId(pool, userId, limit, offset);
+    res.status(200).json(posts);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   uploadImage,
   deletePost,
   getLikes,
   likePost,
-  unlikePost
+  unlikePost,
+  getMyPosts
 };

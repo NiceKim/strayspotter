@@ -113,6 +113,36 @@ async function fetchPosts(pool, limit = 10, offset = 0) {
 }
 
 /**
+ * Fetches posts by user ID.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} userId - ID of the user to fetch posts for.
+ * @param {number} limit - Number of posts to fetch.
+ * @param {number} offset - Number of posts to skip.
+ * @returns {Promise<Object[]>} Array of post rows.
+ */
+async function fetchPostsByUserId(pool, userId, limit = 10, offset = 0) {
+  const query = `
+    SELECT
+      posts.id,
+      posts.picture_id,
+      posts.user_id,
+      posts.created_at,
+      pictures.picture_key,
+      pictures.cat_status,
+      users.account_id
+    FROM posts
+    JOIN pictures ON pictures.id = posts.picture_id
+    LEFT JOIN users ON users.id = posts.user_id
+    WHERE posts.deleted_at IS NULL and posts.user_id = ?
+    ORDER BY posts.created_at DESC
+    LIMIT ? OFFSET ?
+  `;
+  const [result] = await pool.query(query, [userId, limit, offset]);
+  return result;
+}
+
+/**
  * Fetches like count for a specific post.
  *
  * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
@@ -162,6 +192,7 @@ module.exports = {
   insertAnonymousUserDataToDb,
   fetchPostById,
   fetchAnonymousPostById,
+  fetchPostsByUserId,
   deletePost,
   fetchPosts,
   fetchLikesByPostId,
