@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
 import AuthModal from "@/components/auth-modal"
-import { fetchGalleryImages, fetchImageUrl, deletePost, fetchPostLikes, likePost, unlikePost } from "@/services/api"
+import { fetchGalleryImages, fetchImageUrl, deletePost, fetchPostLikes, fetchMyPostsCount, likePost, unlikePost } from "@/services/api"
 import { useDataRefresh } from "@/contexts/DataRefreshContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { Input } from "@/components/ui/input"
@@ -41,6 +41,7 @@ export default function GalleryPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
+  const [myPostCount, setMyPostCount] = useState<number | null>(null)
   const { refreshTrigger } = useDataRefresh()
   const { isAuthenticated, user } = useAuth()
   const isMineMode = searchParams.get("mine") === "1"
@@ -61,6 +62,12 @@ export default function GalleryPage() {
   const loadImages = async () => {
     setIsLoading(true)
     try {
+      if (isMineMode) {
+        const count = await fetchMyPostsCount()
+        setMyPostCount(count)
+      } else {
+        setMyPostCount(null)
+      }
       const posts = await fetchGalleryImages(INITIAL_LIMIT, 0, { mine: isMineMode })
       const items = await Promise.all(
         posts.map(async (post) => {
@@ -268,6 +275,9 @@ export default function GalleryPage() {
               <h2 className="text-xl font-bold text-gray-900">
                 {user?.accountId ? `@ ${user.accountId}` : "My posts"}
               </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                {myPostCount ?? 0} Posts
+              </p>
             </div>
           )}
           {isLoading ? (

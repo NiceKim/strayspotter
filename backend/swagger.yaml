@@ -424,6 +424,32 @@ paths:
         '500':
           description: Internal server error while fetching user posts.
 
+  /api/posts/mine/count:
+    get:
+      summary: Retrieves the post count of the authenticated user
+      description: |
+        Returns the total number of non-deleted posts uploaded by the currently authenticated user.
+        Requires a valid Bearer access token.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+      responses:
+        '200':
+          description: Successfully retrieved the post count for the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: integer
+                example: 12
+        '401':
+          description: Missing or invalid access token.
+        '500':
+          description: Internal server error while fetching user post count.
+
   /api/posts/{id}:
     delete:
       summary: Deletes a post (soft delete)

@@ -153,6 +153,21 @@ export async function fetchGalleryImages(
 }
 
 /**
+ * Fetches the authenticated user's total post count.
+ * @returns Total count of the user's posts
+ */
+export async function fetchMyPostsCount(): Promise<number> {
+  const response = await fetchWithAuth(`${API_URL}/posts/mine/count`)
+  if (!response.ok) {
+    const message = await parseApiErrorMessage(response, "Failed to fetch my posts count")
+    const err = new Error(message) as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
+  return response.json()
+}
+
+/**
  * Fetches presigned image URL by object key.
  * @param key S3 object key (e.g. {picture_key}.jpg)
  * @returns Object containing image URL

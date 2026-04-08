@@ -311,11 +311,23 @@ async function getMyPosts(req, res, next) {
   }
 }
 
+async function getMyPostsCount(req, res, next) {
+  const pool = db.pool;
+  const userId = req.userId;
+  try {
+    const count = await db.fetchMyPostsCount(pool, userId);
+    res.status(200).json(count);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   uploadImage,
   deletePost,
   getLikes,
   likePost,
   unlikePost,
-  getMyPosts
+  getMyPosts,
+  getMyPostsCount
 };

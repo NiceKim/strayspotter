@@ -186,6 +186,19 @@ async function unlikePost(pool, postId, userId) {
   return result.affectedRows;
 }
 
+/**
+ * Fetches the count of posts for a specific user.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} userId - ID of the user to fetch posts for.
+ * @returns {Promise<number>} The count of posts for the user.
+ */
+async function fetchMyPostsCount(pool, userId) {
+  const query = `SELECT COUNT(*) AS count FROM posts WHERE user_id = ? AND deleted_at IS NULL`;
+  const [result] = await pool.query(query, [userId]);
+  return result[0].count;
+}
+
 
 module.exports = {
   insertPostToDb,
@@ -197,5 +210,6 @@ module.exports = {
   fetchPosts,
   fetchLikesByPostId,
   likePost,
-  unlikePost
+  unlikePost,
+  fetchMyPostsCount
 };
