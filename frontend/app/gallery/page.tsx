@@ -27,6 +27,8 @@ type GalleryItem = {
 }
 
 export default function GalleryPage() {
+  const INITIAL_LIMIT = 12
+  const LOAD_MORE_LIMIT = 6
   const searchParams = useSearchParams()
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -37,6 +39,8 @@ export default function GalleryPage() {
   const [anonymousPassword, setAnonymousPassword] = useState("")
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const { refreshTrigger } = useDataRefresh()
   const { isAuthenticated, user } = useAuth()
   const isMineMode = searchParams.get("mine") === "1"
@@ -57,7 +61,7 @@ export default function GalleryPage() {
   const loadImages = async () => {
     setIsLoading(true)
     try {
-      const posts = await fetchGalleryImages(12, 0, { mine: isMineMode })
+      const posts = await fetchGalleryImages(INITIAL_LIMIT, 0, { mine: isMineMode })
       const items = await Promise.all(
         posts.map(async (post) => {
           const [imageData, likeCount] = await Promise.all([
@@ -78,8 +82,10 @@ export default function GalleryPage() {
         }),
       )
       setGalleryItems(items)
+      setHasMore(posts.length === INITIAL_LIMIT)
     } catch (error) {
       console.error("Error loading gallery images:", error)
+      setHasMore(false)
     } finally {
       setIsLoading(false)
     }
@@ -122,13 +128,12 @@ export default function GalleryPage() {
   }
 
   const loadMoreImages = async () => {
+    if (isLoadingMore || !hasMore) return
     const currentCount = galleryItems.length
+    setIsLoadingMore(true)
     try {
-      const posts = await fetchGalleryImages(currentCount + 6, 0, { mine: isMineMode })
-      const newPosts = posts.slice(currentCount)
-
       const newItems = await Promise.all(
-        newPosts.map(async (post) => {
+        (await fetchGalleryImages(LOAD_MORE_LIMIT, currentCount, { mine: isMineMode })).map(async (post) => {
           const [imageData, likeCount] = await Promise.all([
             fetchImageUrl(post.picture_key),
             fetchPostLikes(post.id),
@@ -147,9 +152,12 @@ export default function GalleryPage() {
         }),
       )
 
-      setGalleryItems([...galleryItems, ...newItems])
+      setGalleryItems((prev) => [...prev, ...newItems])
+      setHasMore(newItems.length === LOAD_MORE_LIMIT)
     } catch (error) {
       console.error("Error loading more images:", error)
+    } finally {
+      setIsLoadingMore(false)
     }
   }
 
@@ -347,13 +355,14 @@ export default function GalleryPage() {
             </div>
           )}
 
-          {galleryItems.length > 0 && (
+          {galleryItems.length > 0 && hasMore && (
             <div className="mt-8 flex justify-center">
               <Button
                 onClick={loadMoreImages}
+                disabled={isLoadingMore}
                 className="h-12 rounded-xl bg-primary px-8 text-xl font-bold text-white hover:bg-primary/90 hover:scale-105 transition-all"
               >
-                Load More
+                {isLoadingMore ? "Loading..." : "Load More"}
               </Button>
             </div>
           )}
