@@ -55,10 +55,6 @@ export default function Navbar({openUploadModal, openAuthModal, mapRef}: NavbarP
                 </Link>
             </div>
 
-            <button className="flex flex-col space-y-1.5 md:hidden" onClick={toggleMenu} aria-label="Toggle menu">
-                {isMenuOpen ? <X className="h-6 w-6 text-white"/> : <Menu className="h-6 w-6 text-white"/>}
-            </button>
-
             <ul
                 className={`absolute left-0 right-0 top-[4.5rem] flex-col bg-gray-800 py-2 md:static md:flex md:flex-row md:space-x-8 md:py-0 ${isMenuOpen ? "flex" : "hidden md:flex"}`}
             >
@@ -111,7 +107,7 @@ export default function Navbar({openUploadModal, openAuthModal, mapRef}: NavbarP
                 </li>
             </ul>
 
-            <div className="hidden md:flex md:items-center md:gap-3">
+            <div className="flex items-center gap-3">
                 {openAuthModal && (
                     isAuthenticated ? (
                         <ProfilePopover />
@@ -134,6 +130,9 @@ export default function Navbar({openUploadModal, openAuthModal, mapRef}: NavbarP
                         <Image src="/resources/camera_icon.png" alt="Upload" width={48} height={48}/>
                     </button>
                 )}
+                <button className="flex flex-col space-y-1.5 md:hidden" onClick={toggleMenu} aria-label="Toggle menu">
+                    {isMenuOpen ? <X className="h-6 w-6 text-white"/> : <Menu className="h-6 w-6 text-white"/>}
+                </button>
             </div>
         </nav>
     )
