@@ -202,9 +202,54 @@ async function refreshToken (req, res, next) {
     }
 }
 
+/**
+ * Changes the password of the authenticated user.
+ *
+ * Request:
+ * - `req.userId` must be populated by authentication middleware.
+ * - Body: {@link ChangePasswordBody} (oldPassword: string, newPassword: string)
+ *
+ * Response:
+ * - 200 OK: { message: string }
+ * - 400 Bad Request: Missing old password or new password
+ * - 401 Unauthorized: Invalid old password
+ * - 404 Not Found: User not found
+ *
+ * @param {ChangePasswordBody} req.body
+ * @returns {Promise<void>}
+ */
+async function changePassword (req, res, next) {
+    try {
+        const userId = req.userId;
+        const { oldPassword, newPassword } = req.body;
+
+        if (!oldPassword || !newPassword) {
+            throw new ValidationError('Old password and new password are required');
+        }
+
+        const user = await db.fetchUserById(pool, userId);
+        if (!user) {
+            throw new NotFoundError('User not found');
+        }
+
+        const isPasswordValid = await bcrypt.compare(oldPassword, user.password_hash);
+        if (!isPasswordValid) {
+            throw new UnauthorizedError('Invalid old password');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        await db.updateUserPassword(pool, userId, hashedPassword);
+        res.status(200).json({ message: 'Password changed successfully' });
+    } catch (error) {
+        next(error);
+    }
+}
+
 module.exports = {
     register,
     login,
     getUserDetails,
-    refreshToken
+    refreshToken,
+    changePassword
 }

@@ -798,6 +798,85 @@ paths:
                   message:
                     type: string
 
+  /api/users/password:
+    patch:
+      summary: Changes the authenticated user's password
+      description: |
+        Changes the password for the currently authenticated user.
+        Requires a valid Bearer access token and both old/new passwords in the request body.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - newPassword
+              properties:
+                oldPassword:
+                  type: string
+                  format: password
+                  description: Current password for verification.
+                newPassword:
+                  type: string
+                  format: password
+                  description: New password to set.
+      responses:
+        '200':
+          description: Password changed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password changed successfully
+        '400':
+          description: Missing or invalid password fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          description: Missing/invalid access token or old password mismatch.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Internal server error while changing password.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
   /health:
     get:
       summary: Health check

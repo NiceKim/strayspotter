@@ -52,9 +52,24 @@ async function insertUser(pool, accountId, passwordHash, email) {
     return result.insertId;
 }
 
+/**
+ * Updates a user's password hash.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} userId - User ID.
+ * @param {string} passwordHash - Hashed password string.
+ * @returns {Promise<number>} Number of affected rows (1 on success, 0 otherwise).
+ */
+async function updateUserPassword(pool, userId, passwordHash) {
+    const query = `UPDATE users SET password_hash = ? WHERE id = ?`;
+    const [result] = await pool.query(query, [passwordHash, userId]);
+    return result.affectedRows;
+}
+
 module.exports = {
   fetchUserById,
   fetchUserByAccountId,
   fetchUserByEmail,
-  insertUser
+  insertUser,
+  updateUserPassword
 };
