@@ -521,6 +521,31 @@ export async function fetchUserDetails(): Promise<UserDetails> {
 }
 
 /**
+ * Changes current user's password (requires auth).
+ * @param oldPassword Current password
+ * @param newPassword New password
+ */
+export async function changePassword(
+  oldPassword: string,
+  newPassword: string
+): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/users/password`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ oldPassword, newPassword }),
+  })
+
+  if (!response.ok) {
+    const message = await parseApiErrorMessage(response, "Failed to change password")
+    const err = new Error(message) as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
+
+  return response.json()
+}
+
+/**
  * Fetches GPS data by ID
  * @param id Numeric ID
  * @returns Object containing latitude and longitude
