@@ -156,7 +156,7 @@ export default function GalleryPage() {
     : "No images found. Be the first to upload!"
 
   return (
-    <div className="min-h-screen bg-cat-beige">
+    <div className="flex min-h-dvh flex-col bg-cat-beige">
       <Navbar
         openUploadModal={() => setIsUploadModalOpen(true)}
         openAuthModal={() => setIsAuthModalOpen(true)}
@@ -200,7 +200,7 @@ export default function GalleryPage() {
               <p className="text-xl">{emptyMessage}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 md:gap-6 lg:grid-cols-3">
               {galleryItems.map((item) => (
                 <GalleryCard
                   key={item.id}
@@ -232,3 +232,20 @@ export default function GalleryPage() {
     </div>
   )
 }
+<<<<<<< Updated upstream
+=======
+
+export default function GalleryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center bg-cat-beige">
+          <p className="text-xl text-gray-600">Loading gallery...</p>
+        </div>
+      }
+    >
+      <GalleryPageContent />
+    </Suspense>
+  )
+}
+>>>>>>> Stashed changes
