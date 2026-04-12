@@ -3,8 +3,9 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 import Image from "next/image"
-import { X } from "lucide-react"
+import { ImagePlus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -34,6 +35,8 @@ export default function UploadModal({
   const { toast } = useToast()
   const { refreshData } = useDataRefresh()
   const { isAuthenticated, token, refreshToken } = useAuth()
+
+  useBodyScrollLock(isOpen)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -135,47 +138,72 @@ export default function UploadModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <Card className="w-full max-w-md rounded-2xl border-none shadow-2xl">
-        <CardHeader className="relative bg-cat-orange/10 rounded-t-2xl">
-          <CardTitle className="text-center text-2xl font-bold text-cat-brown">Upload Your Cat Photo</CardTitle>
+      <Card className="flex max-h-[min(90dvh,720px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border-none shadow-2xl">
+        <CardHeader className="relative shrink-0 bg-cat-orange/10 rounded-t-2xl px-4 py-4 sm:px-6">
+          <CardTitle className="pr-10 text-center text-xl font-bold text-cat-brown sm:text-2xl">
+            Upload Your Cat Photo
+          </CardTitle>
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 rounded-full p-1 hover:bg-cat-orange/20 transition-colors"
+            className="absolute right-3 top-3 rounded-full p-1 hover:bg-cat-orange/20 transition-colors sm:right-4 sm:top-4"
             aria-label="Close"
           >
             <X className="h-6 w-6 text-cat-brown" />
           </button>
         </CardHeader>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
               <Label htmlFor="imageInput" className="text-cat-brown font-medium">
                 Select an image
               </Label>
+              <input
+                type="file"
+                id="imageInput"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              />
+
+              {/* Mobile: compact button — no drag-and-drop */}
+              <div className="space-y-2 md:hidden">
+                <label
+                  htmlFor="imageInput"
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-cat-orange/40 bg-cat-orange/5 px-4 py-3 text-sm font-medium text-cat-brown transition-colors active:bg-cat-orange/15"
+                >
+                  <ImagePlus className="h-5 w-5 shrink-0 text-cat-orange" aria-hidden />
+                  {selectedFile ? "Change photo" : "Choose a photo"}
+                </label>
+                {selectedFile ? (
+                  <div className="rounded-lg border border-cat-orange/20 bg-gray-50/80 px-3 py-2 text-cat-brown">
+                    <p className="truncate text-xs font-medium" title={selectedFile.name}>
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-xs text-gray-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                ) : (
+                  <p className="text-center text-xs text-gray-500">JPG, PNG, HEIC · up to 10MB</p>
+                )}
+              </div>
+
+              {/* Desktop / tablet: drag-and-drop zone */}
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                className={`hidden border-2 border-dashed rounded-lg p-6 text-center transition-colors md:block md:p-8 ${
                   isDragActive ? "border-cat-orange bg-cat-orange/10" : "border-cat-orange/50 hover:border-cat-orange"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                <input
-                  type="file"
-                  id="imageInput"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                />
                 <label htmlFor="imageInput" className="cursor-pointer flex flex-col items-center">
                   {selectedFile ? (
                     <div className="text-cat-brown">
-                      <p className="font-medium">{selectedFile.name}</p>
+                      <p className="font-medium break-all">{selectedFile.name}</p>
                       <p className="text-sm text-gray-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
                     </div>
                   ) : (
@@ -211,14 +239,14 @@ export default function UploadModal({
               <RadioGroup
                 value={selectedCategory}
                 onValueChange={(value) => setSelectedCategory(value as CatCategory)}
-                className="flex justify-center gap-4"
+                className="flex justify-center gap-2 sm:gap-4"
               >
                 <div className="flex flex-col items-center">
                   <div className="relative">
                     <RadioGroupItem value="good" id="good" className="sr-only" />
                     <Label htmlFor="good" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-green-200 transition-all ${selectedCategory === "good" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-16 w-16 overflow-hidden rounded-full border-2 bg-green-200 transition-all sm:h-20 sm:w-20 ${selectedCategory === "good" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/happy.png"
@@ -238,7 +266,7 @@ export default function UploadModal({
                     <RadioGroupItem value="concerned" id="concerned" className="sr-only" />
                     <Label htmlFor="concerned" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-yellow-200 transition-all ${selectedCategory === "concerned" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-16 w-16 overflow-hidden rounded-full border-2 bg-yellow-200 transition-all sm:h-20 sm:w-20 ${selectedCategory === "concerned" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/worry.png"
@@ -258,7 +286,7 @@ export default function UploadModal({
                     <RadioGroupItem value="critical" id="critical" className="sr-only" />
                     <Label htmlFor="critical" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-red-200 transition-all ${selectedCategory === "critical" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-16 w-16 overflow-hidden rounded-full border-2 bg-red-200 transition-all sm:h-20 sm:w-20 ${selectedCategory === "critical" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/cry.png"
@@ -276,8 +304,8 @@ export default function UploadModal({
             </div>
 
             {!isAuthenticated && (
-              <div className="space-y-4">
-                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-cat-orange/20">
+              <div className="space-y-3">
+                <div className="space-y-3 rounded-lg border border-cat-orange/20 bg-gray-50 p-3 sm:p-4">
                   <div className="space-y-2">
                     <Label htmlFor="anonymousNickname" className="text-cat-brown font-medium">
                       Anonymous Nickname *
@@ -312,8 +340,8 @@ export default function UploadModal({
 
             <Button
               type="submit"
-              className="w-full bg-primary text-white hover:bg-primary/90 hover:scale-105 transition-all rounded-xl py-6 text-lg font-medium"
-                             disabled={!selectedFile || isUploading || (!isAuthenticated && (!anonymousNickname || !anonymousPassword))}
+              className="w-full rounded-xl bg-primary py-5 text-base font-medium text-white transition-all hover:scale-[1.02] hover:bg-primary/90 sm:py-6 sm:text-lg"
+              disabled={!selectedFile || isUploading || (!isAuthenticated && (!anonymousNickname || !anonymousPassword))}
             >
               {isUploading ? (
                 <div className="flex items-center justify-center">

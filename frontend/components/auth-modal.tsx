@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,8 @@ export default function AuthModal({
 
   const { login, register } = useAuth();
   const { toast } = useToast();
+
+  useBodyScrollLock(isOpen);
 
   const resetForm = () => {
     setAccountId("");
