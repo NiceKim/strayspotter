@@ -1,10 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // APP CONFIGURATION
 ///////////////////////////////////////////////////////////////////////////////////////
+require('dotenv').config();
+
+const Sentry = require("@sentry/node");
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  enabled: process.env.NODE_ENV === "production",
+  sendDefaultPii: true,
+  tracesSampleRate: 1.0,
+});
+
 // Express setup
 const express = require('express');
 const app = express();
-require('dotenv').config();
 const HOST = process.env.APP_HOST;
 const PORT = process.env.APP_PORT;
 app.use(express.json({ limit: '10mb' }));
@@ -31,6 +40,7 @@ app.get('/health', (req, res) => {
 });
 
 const errorHandler = require('./middleware/errorHandler');
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 ///////////////////////////////////////////////////////////////////////////////////////
