@@ -9,38 +9,58 @@ servers:
 paths:
   /api/images:
     get:
-      summary: Retrieves a list of image keys from the cloud
+      summary: Retrieves a paginated list of posts for gallery rendering
       description: |
-        Returns up to a specified number of image keys based on the client's query parameter.
-        The image keys are sorted in descending order of their numerical value extracted from the key names.
+        Returns post rows used by the gallery, including picture key and optional uploader account ID.
+        Results are ordered by post creation time in descending order.
       parameters:
         - in: query
           name: maxKeys
-          required: true
+          required: false
           schema:
             type: integer
+            default: 100
             example: 10
-          description: The number of image keys to return.
+          description: Maximum number of posts to return. Defaults to 100 if omitted.
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            example: 0
+          description: Number of posts to skip for pagination.
       responses:
         '200':
-          description: A sorted list of image keys from the cloud
+          description: A list of post objects for gallery rendering.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: string
-                  description: The key of an image stored in the cloud.
-        '500':
-          description: Internal server error when fetching image keys from the cloud
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Error message explaining the cause of failure
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID.
+                    picture_id:
+                      type: integer
+                      description: Associated picture ID.
+                    picture_key:
+                      type: string
+                      description: S3 object key for the picture.
+                    user_id:
+                      type: integer
+                      nullable: true
+                      description: Owning user ID, or null for anonymous posts.
+                    account_id:
+                      type: string
+                      nullable: true
+                      description: Uploader account ID from users table, or null for anonymous posts.
+                    created_at:
+                      type: string
+                      format: date-time
+                      description: Post creation timestamp.
   /api/image-url:
     get:
       summary: Generates a pre-signed URL.
@@ -54,7 +74,7 @@ paths:
           description: The key of the image in the cloud.
       responses:
         '200':
-          description: A JSON object containing the pre-signed URL.
+          description: A JSON object containing the pre-signed URL. On internal errors, a fallback URL is returned in the same field.
           content:
             application/json:
               schema:
@@ -65,9 +85,7 @@ paths:
                     description: The pre-signed URL to access the image.
         '400':
           description: Bad Request. Missing key query parameter.
-        '500':
-          description: Internal server error if fetching data or generating URL fails.
-  /api/report:
+  /api/pictures/reports:
     get:
       summary: Generates a report based on the provided parameters
       description: |
@@ -86,9 +104,9 @@ paths:
           name: statusFilter
           required: false
           schema:
-            type: string
-            enum: [happy, normal, sad]
-          description: Optional filter for cat status
+            type: integer
+            enum: [0, 1, 2]
+          description: Optional filter for cat status. 0=good, 1=concerned, 2=critical
         - in: query
           name: startDate
           required: false
@@ -169,7 +187,7 @@ paths:
               schema:
                 type: string
                 description: Error message explaining the cause of failure
-  /api/classification/{id}:
+  /api/pictures/{id}/classification:
     get:
       summary: Classifies an image as a cat or not
       description: |
@@ -192,69 +210,7 @@ paths:
                   isCat:
                     type: boolean
                     description: Indicates if the image is classified as a cat (true/false).
-        500:
-          description: Error occurred while fetching the classification data.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Error message explaining the cause of failure.
-  /api/upload:
-    post:
-      summary: Handles file upload, processes EXIF data, and stores image metadata in the database.
-      description: Uploads an image file, processes EXIF data, stores metadata (latitude, longitude, etc.), and uploads the image to cloud storage.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: The image file to upload.
-                category:
-                  type: string
-                  description: The category representing the cat's condition (e.g., "happy", "normal", "sad").
-      responses:
-        200:
-          description: Successfully uploaded the image and stored metadata in the database.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    description: A success message indicating the image was successfully uploaded and metadata saved.
-                  picture_id:
-                    type: string
-                    description: The unique identifier of the uploaded image.
-        400:
-          description: Missing file or invalid file format.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Error message explaining the issue (e.g., 'No file selected!').
-        500:
-          description: Internal server error during file upload, EXIF data parsing, or database insertion.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Error message detailing the cause of the failure.
-  /api/current-cat-count:
+  /api/pictures/counts:
     get:
       summary: Retrieves the current count of cat pictures
       description: |
@@ -283,23 +239,7 @@ paths:
               schema:
                 type: string
                 description: Error message explaining the cause of failure
-  /health:
-    get:
-      summary: Health check
-      description: Returns server status for monitoring or load balancer health checks.
-      responses:
-        '200':
-          description: Server is healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
-                    description: Health status message
-  /api/gps/{id}:
+  /api/pictures/{id}/gps:
     get:
       summary: Retrieves GPS coordinates for a specific picture
       description: |
@@ -307,10 +247,11 @@ paths:
       parameters:
         - name: id
           in: path
-          description: The ID of the picture to retrieve GPS coordinates for.
+          description: The ID of the picture (numeric string).
           required: true
           schema:
-            type: integer
+            type: string
+            pattern: '^\d+$'
       responses:
         '200':
           description: Successfully retrieved GPS coordinates
@@ -328,7 +269,7 @@ paths:
                     format: double
                     description: Longitude coordinate of the picture location
         '400':
-          description: Bad Request - Invalid picture ID parameter
+          description: Bad Request - Missing or invalid picture ID parameter
           content:
             application/json:
               schema:
@@ -337,6 +278,16 @@ paths:
                   error:
                     type: string
                     description: Error message explaining the validation failure
+        '404':
+          description: Picture not found for the given ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message when the picture ID does not exist
         '500':
           description: Internal server error if GPS data retrieval fails
           content:
@@ -347,3 +298,598 @@ paths:
                   error:
                     type: string
                     description: Error message explaining the cause of failure
+  /api/posts:
+    post:
+      summary: Uploads a cat picture and creates a new post
+      description: |
+        Uploads an image file, processes EXIF data, stores metadata (latitude, longitude, etc.), and uploads the image to cloud storage.
+        Creates a post for either an authenticated user (via Bearer token) or an anonymous user.
+        For anonymous uploads, anonymousNickname and anonymousPassword are required. For authenticated uploads, provide a valid Authorization header.
+      parameters:
+        - in: header
+          name: Authorization
+          required: false
+          schema:
+            type: string
+          description: Optional Bearer access token (`Bearer &lt;token&gt;`). When omitted, the upload is treated as anonymous.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+                - status
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: The image file to upload.
+                status:
+                  type: integer
+                  enum: [0, 1, 2]
+                  description: Cat status. 0=good, 1=concerned, 2=critical.
+                anonymousNickname:
+                  type: string
+                  description: Nickname for anonymous uploads. Required when no authenticated user is provided.
+                anonymousPassword:
+                  type: string
+                  format: password
+                  description: Password for anonymous uploads. Required when no authenticated user is provided.
+      responses:
+        '201':
+          description: Successfully uploaded the image and created a post. Returns a plain text success message.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Picture successfully uploaded"
+        '400':
+          description: Missing or invalid fields (e.g. file, status, or required anonymous credentials).
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Error message explaining the validation failure.
+        '500':
+          description: Internal server error during file upload, EXIF data parsing, or database insertion.
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Error message detailing the cause of the failure.
+
+  /api/posts/mine:
+    get:
+      summary: Retrieves posts created by the authenticated user
+      description: |
+        Returns a paginated list of posts uploaded by the currently authenticated user.
+        Requires a valid Bearer access token.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            example: 10
+          description: Maximum number of posts to return.
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            example: 0
+          description: Number of posts to skip for pagination.
+      responses:
+        '200':
+          description: Successfully retrieved posts for the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Post ID.
+                    picture_id:
+                      type: integer
+                      description: Associated picture ID.
+                    user_id:
+                      type: integer
+                      description: Authenticated user ID.
+                    created_at:
+                      type: string
+                      format: date-time
+                      description: Post creation timestamp.
+                    picture_key:
+                      type: string
+                      description: S3 object key for the picture.
+                    cat_status:
+                      type: integer
+                      enum: [0, 1, 2]
+                      description: Cat status. 0=good, 1=concerned, 2=critical.
+        '401':
+          description: Missing or invalid access token.
+        '500':
+          description: Internal server error while fetching user posts.
+
+  /api/posts/mine/count:
+    get:
+      summary: Retrieves the post count of the authenticated user
+      description: |
+        Returns the total number of non-deleted posts uploaded by the currently authenticated user.
+        Requires a valid Bearer access token.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+      responses:
+        '200':
+          description: Successfully retrieved the post count for the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: integer
+                example: 12
+        '401':
+          description: Missing or invalid access token.
+        '500':
+          description: Internal server error while fetching user post count.
+
+  /api/posts/{id}:
+    delete:
+      summary: Deletes a post (soft delete)
+      description: |
+        Soft-deletes the post and its associated picture (logical delete).
+        Data remains in the database but is excluded from default queries.
+        Authenticated users can delete their own posts with a Bearer token; for anonymous posts, provide anonymousPassword in the request body.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID of the post to delete.
+        - in: header
+          name: Authorization
+          required: false
+          schema:
+            type: string
+          description: Bearer token. Required when deleting a post owned by an authenticated user.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                anonymousPassword:
+                  type: string
+                  format: password
+                  description: Required when deleting an anonymous post.
+      responses:
+        '200':
+          description: Post and associated picture were soft-deleted successfully.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Post deleted successfully"
+        '400':
+          description: Missing id or anonymousPassword when required.
+        '403':
+          description: Unauthorized to delete this post.
+        '404':
+          description: Post or anonymous post record not found.
+        '500':
+          description: Failed to soft-delete the post or picture.
+
+  /api/posts/{id}/likes:
+    get:
+      summary: Retrieves like count for a post
+      description: Returns the total number of likes for the specified post ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID of the post.
+      responses:
+        '200':
+          description: Successfully retrieved like count.
+          content:
+            application/json:
+              schema:
+                type: integer
+                example: 12
+        '400':
+          description: Missing post ID.
+
+    post:
+      summary: Likes a post
+      description: |
+        Ensures the authenticated user has liked the specified post.
+        This endpoint is idempotent and returns `changed: false` when the user already liked the post.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID of the post.
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+      responses:
+        '200':
+          description: Like state ensured.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  changed:
+                    type: boolean
+                    description: Whether a new like row was created.
+                  message:
+                    type: string
+                    example: Post liked successfully
+        '400':
+          description: Missing post ID or user ID.
+        '401':
+          description: Missing or invalid access token.
+
+    delete:
+      summary: Unlikes a post
+      description: |
+        Ensures the authenticated user has no like on the specified post.
+        This endpoint is idempotent and returns `changed: false` when no like row existed.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID of the post.
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+      responses:
+        '200':
+          description: Unlike state ensured.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  changed:
+                    type: boolean
+                    description: Whether an existing like row was deleted.
+                  message:
+                    type: string
+                    example: Post unliked successfully
+        '400':
+          description: Missing post ID or user ID.
+        '401':
+          description: Missing or invalid access token.
+
+  /api/users/register:
+    post:
+      summary: Registers a new user
+      description: Registers a new user with account ID, password, and email, and issues access/refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - accountId
+                - password
+                - email
+              properties:
+                accountId:
+                  type: string
+                  description: Unique account identifier for the user.
+                password:
+                  type: string
+                  format: password
+                  description: Plain-text password to be hashed and stored.
+                email:
+                  type: string
+                  format: email
+                  description: User email address.
+      responses:
+        '201':
+          description: User successfully registered. Returns an access token and basic user info.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Short-lived access token.
+                  user:
+                    type: object
+                    properties:
+                      userId:
+                        type: integer
+                      accountId:
+                        type: string
+                      email:
+                        type: string
+        '400':
+          description: Missing fields or duplicate email/accountId.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Internal server error during registration.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /api/users/login:
+    post:
+      summary: Authenticates a user and issues tokens
+      description: Authenticates a user by account ID and password, then issues access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - accountId
+                - password
+              properties:
+                accountId:
+                  type: string
+                  description: Account identifier used for login.
+                password:
+                  type: string
+                  format: password
+                  description: Plain-text password for authentication.
+      responses:
+        '200':
+          description: Login successful. Returns an access token and user info.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      userId:
+                        type: integer
+                      accountId:
+                        type: string
+                      email:
+                        type: string
+        '400':
+          description: Missing accountId or password.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          description: Invalid accountId or password.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /api/users/details:
+    get:
+      summary: Retrieves details of the currently authenticated user
+      description: Returns basic profile information for the authenticated user.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer &lt;token&gt;`) for the authenticated user.
+      responses:
+        '200':
+          description: Successfully retrieved user details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accountId:
+                    type: string
+                  email:
+                    type: string
+                  joinedDate:
+                    type: string
+                    format: date-time
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /api/users/refresh:
+    post:
+      summary: Issues a new short-lived access token
+      description: |
+        Issues a new short-lived access token for the authenticated user based on a valid refresh token cookie.
+        The refresh token is expected to be present in an HTTP-only `refreshToken` cookie.
+      responses:
+        '200':
+          description: Successfully issued a new access token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Missing or invalid refresh token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Internal server error while refreshing the token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /api/users/password:
+    patch:
+      summary: Changes the authenticated user's password
+      description: |
+        Changes the password for the currently authenticated user.
+        Requires a valid Bearer access token and both old/new passwords in the request body.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer access token (`Bearer <token>`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - newPassword
+              properties:
+                oldPassword:
+                  type: string
+                  format: password
+                  description: Current password for verification.
+                newPassword:
+                  type: string
+                  format: password
+                  description: New password to set.
+      responses:
+        '200':
+          description: Password changed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password changed successfully
+        '400':
+          description: Missing or invalid password fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          description: Missing/invalid access token or old password mismatch.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Internal server error while changing password.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /health:
+    get:
+      summary: Health check
+      description: Returns server status for monitoring or load balancer health checks.
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                    description: Health status message

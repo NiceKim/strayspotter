@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { uploadImage } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDataRefresh } from "@/contexts/DataRefreshContext"
+import { useAuth } from "@/contexts/AuthContext"
 import { categoryToStatus, type CatCategory } from "@/lib/utils"
 
 export default function UploadModal({
@@ -30,10 +31,9 @@ export default function UploadModal({
   const [isUploading, setIsUploading] = useState(false)
   const [anonymousNickname, setAnonymousNickname] = useState<string>("guest")
   const [anonymousPassword, setAnonymousPassword] = useState<string>("")
-  // Always anonymous for now (no login system implemented)
-  const isAnonymous = true
   const { toast } = useToast()
   const { refreshData } = useDataRefresh()
+  const { isAuthenticated, token, refreshToken } = useAuth()
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -71,35 +71,61 @@ export default function UploadModal({
     const formData = new FormData()
     formData.append("image", selectedFile)
     formData.append("status", categoryToStatus(selectedCategory).toString())
-    
-    // Add anonymous user data (required for all uploads)
-    if (anonymousNickname && anonymousPassword) {
+
+    if (!isAuthenticated && anonymousNickname && anonymousPassword) {
       formData.append("anonymousNickname", anonymousNickname)
       formData.append("anonymousPassword", anonymousPassword)
     }
 
     try {
       setIsUploading(true)
-      const result = await uploadImage(formData)
-
-      if (result.success) {
-        setSelectedFile(null)
-        onClose()
-        refreshData()
-        toast({
-          title: "Upload successful",
-          description: "Your cat photo has been uploaded successfully!",
-        })
-      } else {
-        throw new Error(result.message)
-      }
-    } catch (error) {
-      console.error("Upload failed:", error)
+      await uploadImage(formData, token)
+      setSelectedFile(null)
+      onClose()
+      refreshData()
       toast({
-        title: "Upload failed",
-        description: "There was an error uploading your photo. Please try again.",
-        variant: "destructive",
+        title: "Upload successful",
+        description: "Your cat photo has been uploaded successfully!",
       })
+    } catch (error) {
+      const status = error && typeof error === "object" && "status" in error ? (error as { status: number }).status : undefined
+      if (status === 401 && isAuthenticated) {
+        const newToken = await refreshToken()
+        if (newToken) {
+          const retryFormData = new FormData()
+          retryFormData.append("image", selectedFile)
+          retryFormData.append("status", categoryToStatus(selectedCategory).toString())
+          try {
+            await uploadImage(retryFormData, newToken)
+            setSelectedFile(null)
+            onClose()
+            refreshData()
+            toast({
+              title: "Upload successful",
+              description: "Your cat photo has been uploaded successfully!",
+            })
+          } catch {
+            toast({
+              title: "Upload failed",
+              description: "There was an error uploading your photo. Please try again.",
+              variant: "destructive",
+            })
+          }
+        } else {
+          toast({
+            title: "Session expired",
+            description: "Please log in again to upload.",
+            variant: "destructive",
+          })
+        }
+      } else {
+        console.error("Upload failed:", error)
+        toast({
+          title: "Upload failed",
+          description: "There was an error uploading your photo. Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsUploading(false)
     }
@@ -249,45 +275,45 @@ export default function UploadModal({
               </RadioGroup>
             </div>
 
-            {/* Anonymous User Section */}
-            <div className="space-y-4">
-               <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-cat-orange/20">
-                 <div className="space-y-2">
-                   <Label htmlFor="anonymousNickname" className="text-cat-brown font-medium">
-                     Anonymous Nickname *
-                   </Label>
-                   <Input
-                     id="anonymousNickname"
-                     type="text"
-                     value={anonymousNickname}
-                     onChange={(e) => setAnonymousNickname(e.target.value)}
-                     placeholder="Enter your nickname"
-                     className="border-cat-orange/30 focus:border-cat-orange"
-                     required
-                   />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="anonymousPassword" className="text-cat-brown font-medium">
-                     Password *
-                   </Label>
-                   <Input
-                     id="anonymousPassword"
-                     type="password"
-                     value={anonymousPassword}
-                     onChange={(e) => setAnonymousPassword(e.target.value)}
-                     placeholder="Enter your password"
-                     className="border-cat-orange/30 focus:border-cat-orange"
-                     required
-                   />
-                 </div>
-               </div>
-             </div>
+            {!isAuthenticated && (
+              <div className="space-y-4">
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-cat-orange/20">
+                  <div className="space-y-2">
+                    <Label htmlFor="anonymousNickname" className="text-cat-brown font-medium">
+                      Anonymous Nickname *
+                    </Label>
+                    <Input
+                      id="anonymousNickname"
+                      type="text"
+                      value={anonymousNickname}
+                      onChange={(e) => setAnonymousNickname(e.target.value)}
+                      placeholder="Enter your nickname"
+                      className="border-cat-orange/30 focus:border-cat-orange"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="anonymousPassword" className="text-cat-brown font-medium">
+                      Password *
+                    </Label>
+                    <Input
+                      id="anonymousPassword"
+                      type="password"
+                      value={anonymousPassword}
+                      onChange={(e) => setAnonymousPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="border-cat-orange/30 focus:border-cat-orange"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Button
               type="submit"
               className="w-full bg-primary text-white hover:bg-primary/90 hover:scale-105 transition-all rounded-xl py-6 text-lg font-medium"
-                             disabled={!selectedFile || isUploading || !anonymousNickname || !anonymousPassword}
+                             disabled={!selectedFile || isUploading || (!isAuthenticated && (!anonymousNickname || !anonymousPassword))}
             >
               {isUploading ? (
                 <div className="flex items-center justify-center">

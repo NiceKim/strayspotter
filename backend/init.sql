@@ -2,22 +2,23 @@ CREATE DATABASE IF NOT EXISTS strayspotter_database;
 USE strayspotter_database;
 
 CREATE TABLE IF NOT EXISTS users (
-    id BIGINT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     account_id VARCHAR(20) UNIQUE,
-    nickname VARCHAR(20) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
-    joined_date TIMESTAMP NOT NULL,
+    joined_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS pictures (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    picture_key VARCHAR(64) NOT NULL UNIQUE,
     latitude FLOAT,
     longitude FLOAT,
     date_taken DATETIME,
     cat_status TINYINT(3),
-    district_no INT
+    district_no INT,
+    deleted_at DATETIME NULL DEFAULT NULL
 );
 
 CREATE TABLE  IF NOT EXISTS posts (
@@ -25,7 +26,8 @@ CREATE TABLE  IF NOT EXISTS posts (
     picture_id BIGINT NOT NULL,
     user_id BIGINT DEFAULT NULL,
     body TEXT,
-    created_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL DEFAULT NULL,
 
     CONSTRAINT fk_posts_users
         FOREIGN KEY (user_id)
@@ -68,22 +70,22 @@ CREATE TABLE IF NOT EXISTS anonymous_posts (
 -- );
 
 
--- CREATE TABLE IF NOT EXISTS likes (
---     user_id BIGINT NOT NULL,
---     post_id BIGINT NOT NULL,
+CREATE TABLE IF NOT EXISTS likes (
+    user_id BIGINT NOT NULL,
+    post_id BIGINT NOT NULL,
 
---     PRIMARY KEY (user_id, post_id),
+    PRIMARY KEY (user_id, post_id),
 
---     CONSTRAINT fk_likes_user
---         FOREIGN KEY (user_id)
---         REFERENCES users(id)
---         ON DELETE CASCADE,
+    CONSTRAINT fk_likes_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
 
---     CONSTRAINT fk_likes_post
---         FOREIGN KEY (post_id)
---         REFERENCES posts(id)
---         ON DELETE CASCADE
--- );
+    CONSTRAINT fk_likes_post
+        FOREIGN KEY (post_id)
+        REFERENCES posts(id)
+        ON DELETE CASCADE
+);
 
 CREATE TABLE IF NOT EXISTS tokens(
     token_name VARCHAR(10) PRIMARY KEY,
