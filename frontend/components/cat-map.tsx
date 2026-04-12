@@ -52,7 +52,6 @@ export default function CatMap() {
 
         // Load images
         await loadImages(map, L)
-        console.log("map ready")
         setIsLoading(false)
       } catch (error) {
         console.error("Failed to initialize map:", error)

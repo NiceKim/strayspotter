@@ -60,7 +60,6 @@ async function uploadToCloud(file) {
   };
   const command = new PutObjectCommand(params);
   await s3Client.send(command);
-  console.log(`File uploaded successfully at https://${bucket_name}.s3.amazonaws.com/${params.Key}`);
 }
 
 async function deleteFromCloud(key) {

@@ -1,21 +1,22 @@
 class CustomError extends Error {
-  constructor(message, statusCode) {
+  constructor(message, statusCode, logging = true) {
     super(message);
     this.statusCode = statusCode;
+    this.logging = logging;
     this.expose = statusCode >= 400 && statusCode < 500;
   }
 }
 
 class ValidationError extends CustomError {
   constructor(message = 'Validation error') {
-    super(message, 400);
+    super(message, 400, false);
     this.name = 'ValidationError';
   }
 }
 
 class NotFoundError extends CustomError {
   constructor(message = 'Resource not found') {
-    super(message, 404);
+    super(message, 404, false);
     this.name = 'NotFoundError';
   }
 }
