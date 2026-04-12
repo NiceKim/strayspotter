@@ -46,7 +46,7 @@ export default function Navbar({openUploadModal, openAuthModal, mapRef}: NavbarP
     }
 
     return (
-        <nav className="sticky top-0 z-50 flex items-center justify-between bg-gray-800 px-5 py-2">
+        <nav className="sticky top-0 z-nav flex items-center justify-between bg-gray-800 px-5 py-2">
             <div className="flex items-center">
                 <Link href="/" className="flex items-center">
                     <Image src="/resources/logo.jpeg" alt="StraySpotter logo" width={60} height={60}

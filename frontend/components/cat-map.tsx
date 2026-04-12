@@ -12,11 +12,6 @@ const SOUTH_WEST_CORNER: [number, number] = [1.2, 103.6]
 const NORTH_EAST_CORNER: [number, number] = [1.46, 104.1]
 const MARK_ICON_LOCATION = "/resources/icon.png"
 
-interface ImageData {
-  id: string
-  url: string
-}
-
 export default function CatMap() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
@@ -115,8 +110,8 @@ export default function CatMap() {
   }
 
   return (
-    <div className="w-full h-full relative">
-      <div ref={mapRef} className="w-full h-[600px] rounded-lg border-4 border-black" />
+    <div className="relative isolate z-0 w-full">
+      <div ref={mapRef} className="h-[600px] w-full rounded-lg border-4 border-black" />
       {isLoading && (
         <div className="absolute top-0 left-0 w-full h-[600px] bg-gray-200 rounded-lg border-4 border-black flex items-center justify-center z-10">
           <div className="text-gray-600">Loading map...</div>

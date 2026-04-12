@@ -228,7 +228,7 @@ export default function GalleryPage() {
 
       {deleteTarget && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/50 p-4"
           onClick={closeDeleteModal}
         >
           <div
@@ -269,7 +269,7 @@ export default function GalleryPage() {
         </div>
       )}
 
-      <div id="aesthetic" className="mx-auto my-16 max-w-7xl rounded-4xl bg-[#10403B] px-4 py-2 shadow-2xl">
+      <div id="aesthetic" className="mx-auto my-16 max-w-7xl rounded-4xl bg-cat-brown px-4 py-2 shadow-2xl">
         <div className="rounded-4xl bg-white p-8" onClick={() => setActiveId(null)}>
           {isMineMode && (
             <div className="mb-4 text-left">

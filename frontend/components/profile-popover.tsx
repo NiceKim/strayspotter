@@ -183,7 +183,7 @@ export default function ProfilePopover() {
 
       {passwordModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black bg-opacity-70"
           onClick={(e) => {
             if (e.target === e.currentTarget) closePasswordModal();
           }}
