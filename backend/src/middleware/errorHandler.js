@@ -11,7 +11,8 @@ function errorHandler(err, req, res, next) {
 
   const message = expose && err.message ? err.message : 'Internal Server Error';
 
-  const logging = err.logging || true;
+  const logging =
+    typeof err.logging === 'boolean' ? err.logging : true;
   if (logging) {
     console.error('Error:', err);
   }

@@ -30,7 +30,7 @@ class ForbiddenError extends CustomError {
 
 class UnauthorizedError extends CustomError {
   constructor(message = 'Unauthorized') {
-    super(message, 401);
+    super(message, 401, false);
     this.name = 'UnauthorizedError';
   }
 }

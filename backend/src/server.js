@@ -9,8 +9,6 @@ const HOST = process.env.APP_HOST;
 const PORT = process.env.APP_PORT;
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-const errorHandler = require('./middleware/errorHandler');
-app.use(errorHandler);
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 const { generalLimiter } = require('./middleware/rateLimiters');
@@ -31,6 +29,9 @@ app.use(API_PREFIX, apiRoutes);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // SERVER STARTUP
