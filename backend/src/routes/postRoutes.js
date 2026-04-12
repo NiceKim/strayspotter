@@ -11,7 +11,7 @@ router.post('/', postLimiter, optionalVerifyToken, receiveImage, postController.
 router.delete('/:id', postLimiter, optionalVerifyToken, postController.deletePost);
 router.get('/mine', verifyToken, postController.getMyPosts);
 router.get('/mine/count', verifyToken, postController.getMyPostsCount);
-router.get('/:id/likes', postController.getLikes);
+router.get('/:id/likes', optionalVerifyToken, postController.getLikes);
 router.post('/:id/likes', verifyToken, postController.likePost);
 router.delete('/:id/likes', verifyToken, postController.unlikePost);
 

@@ -43,7 +43,7 @@ export default function GalleryPage() {
   const [hasMore, setHasMore] = useState(true)
   const [myPostCount, setMyPostCount] = useState<number | null>(null)
   const { refreshTrigger } = useDataRefresh()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth()
   const isMineMode = searchParams.get("mine") === "1"
 
   const getCatStatusLabel = (status: 0 | 1 | 2) => {
@@ -71,7 +71,7 @@ export default function GalleryPage() {
       const posts = await fetchGalleryImages(INITIAL_LIMIT, 0, { mine: isMineMode })
       const items = await Promise.all(
         posts.map(async (post) => {
-          const [imageData, likeCount] = await Promise.all([
+          const [imageData, likesInfo] = await Promise.all([
             fetchImageUrl(post.picture_key),
             fetchPostLikes(post.id),
           ])
@@ -82,8 +82,8 @@ export default function GalleryPage() {
             catStatus: post.cat_status,
             userId: post.user_id,
             accountId: post.account_id,
-            likeCount,
-            likedByMe: false,
+            likeCount: likesInfo.count,
+            likedByMe: likesInfo.likedByMe,
             isLikeLoading: false,
           }
         }),
@@ -99,8 +99,9 @@ export default function GalleryPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     loadImages()
-  }, [refreshTrigger, isMineMode])
+  }, [refreshTrigger, isMineMode, isAuthenticated, authLoading])
 
   const openUploadModal = () => setIsUploadModalOpen(true)
   const closeUploadModal = () => setIsUploadModalOpen(false)
@@ -141,7 +142,7 @@ export default function GalleryPage() {
     try {
       const newItems = await Promise.all(
         (await fetchGalleryImages(LOAD_MORE_LIMIT, currentCount, { mine: isMineMode })).map(async (post) => {
-          const [imageData, likeCount] = await Promise.all([
+          const [imageData, likesInfo] = await Promise.all([
             fetchImageUrl(post.picture_key),
             fetchPostLikes(post.id),
           ])
@@ -152,8 +153,8 @@ export default function GalleryPage() {
             catStatus: post.cat_status,
             userId: post.user_id,
             accountId: post.account_id,
-            likeCount,
-            likedByMe: false,
+            likeCount: likesInfo.count,
+            likedByMe: likesInfo.likedByMe,
             isLikeLoading: false,
           }
         }),

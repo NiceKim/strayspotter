@@ -366,13 +366,18 @@ export async function deletePost(
   }
 }
 
+/** Like summary for a post (count + whether the current user liked it, when logged in). */
+export interface PostLikesInfo {
+  count: number
+  likedByMe: boolean
+}
+
 /**
- * Fetches the like count for a post.
- * @param postId Post ID
- * @returns Total like count
+ * Fetches like count and, when a session exists, whether the current user liked the post.
+ * Sends the access token when available so `likedByMe` is accurate.
  */
-export async function fetchPostLikes(postId: number): Promise<number> {
-  const response = await fetch(`${API_URL}/posts/${postId}/likes`)
+export async function fetchPostLikes(postId: number): Promise<PostLikesInfo> {
+  const response = await fetchWithAuth(`${API_URL}/posts/${postId}/likes`)
   if (!response.ok) {
     const message = await parseApiErrorMessage(response, "Failed to fetch likes")
     const err = new Error(message) as Error & { status?: number }

@@ -156,6 +156,20 @@ async function fetchLikesByPostId(pool, postId) {
 }
 
 /**
+ * Returns whether the given user has liked the post.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} postId - ID of the post.
+ * @param {number} userId - ID of the user.
+ * @returns {Promise<boolean>}
+ */
+async function hasUserLikedPost(pool, postId, userId) {
+  const query = `SELECT 1 FROM likes WHERE post_id = ? AND user_id = ? LIMIT 1`;
+  const [rows] = await pool.query(query, [postId, userId]);
+  return rows.length > 0;
+}
+
+/**
  * Inserts a like row for a post-user pair.
  *
  * Uses MySQL `INSERT IGNORE` so duplicate likes are ignored
@@ -209,6 +223,7 @@ module.exports = {
   deletePost,
   fetchPosts,
   fetchLikesByPostId,
+  hasUserLikedPost,
   likePost,
   unlikePost,
   fetchMyPostsCount
