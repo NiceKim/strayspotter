@@ -4,13 +4,38 @@ import { useEffect, useRef, useState } from "react"
 import { fetchImageUrl, fetchGalleryImages, fetchGPSByID } from "@/services/api"
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
 
+/** Default map center (island-wide framing) */
 const COORDINATES: [number, number] = [1.3521, 103.8198]
+/**
+ * Mobile: center slightly toward the urban core (south-central) so the city
+ * sits more in the middle of the viewport when zoomed in.
+ */
+const MOBILE_COORDINATES: [number, number] = [1.304, 103.835]
+/** Desktop / tablet initial zoom */
 const DEFAULT_ZOOM_LEVEL = 11
+/** Narrow viewports: start more zoomed in (matches Tailwind `md` breakpoint) */
+const MOBILE_INITIAL_ZOOM_LEVEL = 13
 const MIN_ZOOM_LEVEL = 11
 const MAX_ZOOM_LEVEL = 30
 const SOUTH_WEST_CORNER: [number, number] = [1.2, 103.6]
 const NORTH_EAST_CORNER: [number, number] = [1.46, 104.1]
 const MARK_ICON_LOCATION = "/resources/icon.png"
+
+function getInitialZoomLevel(): number {
+  if (typeof window === "undefined") {
+    return DEFAULT_ZOOM_LEVEL
+  }
+  return window.matchMedia("(max-width: 767px)").matches
+    ? MOBILE_INITIAL_ZOOM_LEVEL
+    : DEFAULT_ZOOM_LEVEL
+}
+
+function getInitialCenter(): [number, number] {
+  if (typeof window === "undefined") {
+    return COORDINATES
+  }
+  return window.matchMedia("(max-width: 767px)").matches ? MOBILE_COORDINATES : COORDINATES
+}
 
 export default function CatMap() {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -25,7 +50,7 @@ export default function CatMap() {
         // Dynamically import Leaflet
         const L = await import("leaflet")
         // Initialize the map
-        const map = L.map(mapRef.current!).setView(COORDINATES, DEFAULT_ZOOM_LEVEL)
+        const map = L.map(mapRef.current!).setView(getInitialCenter(), getInitialZoomLevel())
         mapInstanceRef.current = map
 
         // Add OpenStreetMap tile layer
