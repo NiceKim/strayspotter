@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { Suspense, useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Navbar from "@/components/navbar"
@@ -22,7 +22,7 @@ import { useAuth } from "@/contexts/AuthContext"
 const INITIAL_PAGE_SIZE = 12
 const LOAD_MORE_SIZE = 6
 
-export default function GalleryPage() {
+function GalleryPageContent() {
   const searchParams = useSearchParams()
   const isMineMode = searchParams.get("mine") === "1"
 
@@ -232,14 +232,21 @@ export default function GalleryPage() {
     </div>
   )
 }
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> 58722a5 (chore: production environment setup)
 
 export default function GalleryPage() {
   return (
     <Suspense
       fallback={
+<<<<<<< HEAD
         <div className="flex min-h-dvh items-center justify-center bg-cat-beige">
+=======
+        <div className="flex min-h-screen items-center justify-center bg-cat-beige">
+>>>>>>> 58722a5 (chore: production environment setup)
           <p className="text-xl text-gray-600">Loading gallery...</p>
         </div>
       }
@@ -248,4 +255,7 @@ export default function GalleryPage() {
     </Suspense>
   )
 }
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> 58722a5 (chore: production environment setup)
