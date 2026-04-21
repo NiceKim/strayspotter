@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import Navbar from "@/components/navbar"
 import UploadModal from "@/components/upload-modal"
+import AuthModal from "@/components/auth-modal"
 import ReportSummary from "@/components/report/report-summary"
 import ReportTable from "@/components/report/report-table"
 import { fetchDetailedReport, type ReportData } from "@/services/api"
@@ -19,6 +20,7 @@ const getLocalMonthString = (date: Date) =>
 
 export default function ReportPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -30,11 +32,13 @@ export default function ReportPage() {
   startDate: null,
   endDate: null,
 })
-  // 실제로 적용된(데이터와 일치하는) 필터 상태
+
   const [appliedFilters, setAppliedFilters] = useState<ReportFilters>(filters)
 
   const openUploadModal = () => setIsUploadModalOpen(true)
   const closeUploadModal = () => setIsUploadModalOpen(false)
+  const openAuthModal = () => setIsAuthModalOpen(true)
+  const closeAuthModal = () => setIsAuthModalOpen(false)
 
   const loadReportData = async (nextFilters?: ReportFilters) => {
     const useFilters = nextFilters || filters
@@ -86,8 +90,9 @@ export default function ReportPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <Navbar openUploadModal={openUploadModal} />
+      <Navbar openUploadModal={openUploadModal} openAuthModal={openAuthModal} />
       <UploadModal isOpen={isUploadModalOpen} onClose={closeUploadModal} />
+      <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}

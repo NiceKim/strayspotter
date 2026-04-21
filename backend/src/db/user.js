@@ -1,0 +1,75 @@
+/**
+ * Fetches a user row by its numeric ID.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} id - User ID.
+ * @returns {Promise<Object|undefined>} The user row, or undefined if not found.
+ */
+async function fetchUserById(pool, id) {
+    const query = `SELECT * FROM users WHERE id = ?`;
+    const [result] = await pool.query(query, [id]);
+    return result[0];
+}
+
+/**
+ * Fetches a user row by account ID.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {string} accountId - Account identifier for the user.
+ * @returns {Promise<Object|undefined>} The user row, or undefined if not found.
+ */
+async function fetchUserByAccountId(pool, accountId) {
+    const query = `SELECT * FROM users WHERE account_id = ?`;
+    const [result] = await pool.query(query, [accountId]);
+    return result[0];
+}
+
+/**
+ * Fetches a user row by email.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {string} email - User email address.
+ * @returns {Promise<Object|undefined>} The user row, or undefined if not found.
+ */
+async function fetchUserByEmail(pool, email) {
+    const query = `SELECT * FROM users WHERE email = ?`;
+    const [result] = await pool.query(query, [email]);
+    return result[0];
+}
+
+/**
+ * Inserts a new user with accountId, hashed password, and email.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {string} accountId - Account identifier to be stored.
+ * @param {string} passwordHash - Hashed password string.
+ * @param {string} email - User email address.
+ * @returns {Promise<number>} ID of the newly created user.
+ */
+async function insertUser(pool, accountId, passwordHash, email) {
+    const query = `INSERT INTO users (account_id, password_hash, email) VALUES (?, ?, ?)`;
+    const [result] = await pool.query(query, [accountId, passwordHash, email]);
+    return result.insertId;
+}
+
+/**
+ * Updates a user's password hash.
+ *
+ * @param {import('mysql2/promise').Pool} pool - MySQL connection pool.
+ * @param {number} userId - User ID.
+ * @param {string} passwordHash - Hashed password string.
+ * @returns {Promise<number>} Number of affected rows (1 on success, 0 otherwise).
+ */
+async function updateUserPassword(pool, userId, passwordHash) {
+    const query = `UPDATE users SET password_hash = ? WHERE id = ?`;
+    const [result] = await pool.query(query, [passwordHash, userId]);
+    return result.affectedRows;
+}
+
+module.exports = {
+  fetchUserById,
+  fetchUserByAccountId,
+  fetchUserByEmail,
+  insertUser,
+  updateUserPassword
+};

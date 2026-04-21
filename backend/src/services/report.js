@@ -1,4 +1,4 @@
-const { getDailyPictureCount, getMonthlyPictureCount } = require('./db');
+const { getDailyPictureCount, getMonthlyPictureCount } = require('../db');
 
 /**
  * Creates a picture report (daily or monthly) by fetching and aggregating picture count data.

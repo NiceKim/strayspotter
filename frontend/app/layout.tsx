@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from '@/components/theme-provider'
 import { DataRefreshProvider } from '../contexts/DataRefreshContext'
+import { AuthProvider } from '../contexts/AuthContext'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -34,9 +35,11 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <DataRefreshProvider>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            {children}
-          </ThemeProvider>
+          <AuthProvider>
+            <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+              {children}
+            </ThemeProvider>
+          </AuthProvider>
         </DataRefreshProvider>
       </body>
     </html>

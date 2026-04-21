@@ -9,9 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { uploadImage } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
 import { useDataRefresh } from "@/contexts/DataRefreshContext"
+import { useAuth } from "@/contexts/AuthContext"
+import { categoryToStatus, type CatCategory } from "@/lib/utils"
 
 export default function UploadModal({
   isOpen,
@@ -22,11 +25,43 @@ export default function UploadModal({
   onClose: () => void
   onSuccess?: () => void
 }) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("happy")
+  const [selectedCategory, setSelectedCategory] = useState<CatCategory>("good")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isDragActive, setIsDragActive] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [anonymousNickname, setAnonymousNickname] = useState<string>("guest")
+  const [anonymousPassword, setAnonymousPassword] = useState<string>("")
   const { toast } = useToast()
   const { refreshData } = useDataRefresh()
+  const { isAuthenticated, token, refreshToken } = useAuth()
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith("image/")) {
+      setSelectedFile(file)
+    } else if (file) {
+      toast({
+        title: "Invalid file type",
+        description: "Please drop an image file (JPG, PNG, HEIC, etc.)",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,29 +70,62 @@ export default function UploadModal({
 
     const formData = new FormData()
     formData.append("image", selectedFile)
-    formData.append("status", selectedCategory)
+    formData.append("status", categoryToStatus(selectedCategory).toString())
+
+    if (!isAuthenticated && anonymousNickname && anonymousPassword) {
+      formData.append("anonymousNickname", anonymousNickname)
+      formData.append("anonymousPassword", anonymousPassword)
+    }
 
     try {
       setIsUploading(true)
-      const result = await uploadImage(formData)
-
-      if (result.success) {
-        onClose()
-        refreshData()
-        toast({
-          title: "Upload successful",
-          description: "Your cat photo has been uploaded successfully!",
-        })
-      } else {
-        throw new Error(result.message)
-      }
-    } catch (error) {
-      console.error("Upload failed:", error)
+      await uploadImage(formData, token)
+      setSelectedFile(null)
+      onClose()
+      refreshData()
       toast({
-        title: "Upload failed",
-        description: "There was an error uploading your photo. Please try again.",
-        variant: "destructive",
+        title: "Upload successful",
+        description: "Your cat photo has been uploaded successfully!",
       })
+    } catch (error) {
+      const status = error && typeof error === "object" && "status" in error ? (error as { status: number }).status : undefined
+      if (status === 401 && isAuthenticated) {
+        const newToken = await refreshToken()
+        if (newToken) {
+          const retryFormData = new FormData()
+          retryFormData.append("image", selectedFile)
+          retryFormData.append("status", categoryToStatus(selectedCategory).toString())
+          try {
+            await uploadImage(retryFormData, newToken)
+            setSelectedFile(null)
+            onClose()
+            refreshData()
+            toast({
+              title: "Upload successful",
+              description: "Your cat photo has been uploaded successfully!",
+            })
+          } catch {
+            toast({
+              title: "Upload failed",
+              description: "There was an error uploading your photo. Please try again.",
+              variant: "destructive",
+            })
+          }
+        } else {
+          toast({
+            title: "Session expired",
+            description: "Please log in again to upload.",
+            variant: "destructive",
+          })
+        }
+      } else {
+        console.error("Upload failed:", error)
+        toast({
+          title: "Upload failed",
+          description: "There was an error uploading your photo. Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsUploading(false)
     }
@@ -66,7 +134,12 @@ export default function UploadModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <Card className="w-full max-w-md rounded-2xl border-none shadow-2xl">
         <CardHeader className="relative bg-cat-orange/10 rounded-t-2xl">
           <CardTitle className="text-center text-2xl font-bold text-cat-brown">Upload Your Cat Photo</CardTitle>
@@ -84,12 +157,18 @@ export default function UploadModal({
               <Label htmlFor="imageInput" className="text-cat-brown font-medium">
                 Select an image
               </Label>
-              <div className="border-2 border-dashed border-cat-orange/50 rounded-lg p-8 text-center hover:border-cat-orange transition-colors">
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  isDragActive ? "border-cat-orange bg-cat-orange/10" : "border-cat-orange/50 hover:border-cat-orange"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <input
                   type="file"
                   id="imageInput"
                   accept="image/*"
-                  required
                   className="hidden"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 />
@@ -117,8 +196,8 @@ export default function UploadModal({
                           />
                         </svg>
                       </div>
-                      <span className="text-cat-brown">Click to browse files</span>
-                      <span className="text-xs text-gray-500 mt-1">JPG, PNG, GIF up to 10MB</span>
+                      <span className="text-cat-brown">{isDragActive ? "Drop image here" : "Click or drag image here"}</span>
+                      <span className="text-xs text-gray-500 mt-1">JPG, PNG, HEIC up to 10MB</span>
                     </>
                   )}
                 </label>
@@ -131,19 +210,19 @@ export default function UploadModal({
 
               <RadioGroup
                 value={selectedCategory}
-                onValueChange={setSelectedCategory}
+                onValueChange={(value) => setSelectedCategory(value as CatCategory)}
                 className="flex justify-center gap-4"
               >
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <RadioGroupItem value="happy" id="happy" className="sr-only" />
-                    <Label htmlFor="happy" className="cursor-pointer">
+                    <RadioGroupItem value="good" id="good" className="sr-only" />
+                    <Label htmlFor="good" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-green-200 transition-all ${selectedCategory === "happy" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-green-200 transition-all ${selectedCategory === "good" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/happy.png"
-                          alt="Happy cat"
+                          alt="Good"
                           width={60}
                           height={60}
                           className="h-full w-full object-cover p-2"
@@ -151,19 +230,19 @@ export default function UploadModal({
                       </div>
                     </Label>
                   </div>
-                  <span className="mt-1 text-xs font-medium">Happy</span>
+                  <span className="mt-1 text-xs font-medium">Good</span>
                 </div>
 
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <RadioGroupItem value="normal" id="normal" className="sr-only" />
-                    <Label htmlFor="normal" className="cursor-pointer">
+                    <RadioGroupItem value="concerned" id="concerned" className="sr-only" />
+                    <Label htmlFor="concerned" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-yellow-200 transition-all ${selectedCategory === "normal" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-yellow-200 transition-all ${selectedCategory === "concerned" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/worry.png"
-                          alt="Normal cat"
+                          alt="Concerned"
                           width={80}
                           height={80}
                           className="h-full w-full object-cover p-2"
@@ -171,19 +250,19 @@ export default function UploadModal({
                       </div>
                     </Label>
                   </div>
-                  <span className="mt-1 text-xs font-medium">Normal</span>
+                  <span className="mt-1 text-xs font-medium">Concerned</span>
                 </div>
 
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <RadioGroupItem value="sad" id="sad" className="sr-only" />
-                    <Label htmlFor="sad" className="cursor-pointer">
+                    <RadioGroupItem value="critical" id="critical" className="sr-only" />
+                    <Label htmlFor="critical" className="cursor-pointer">
                       <div
-                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-red-200 transition-all ${selectedCategory === "sad" ? "border-primary shadow-lg" : "border-transparent"}`}
+                        className={`h-20 w-20 overflow-hidden rounded-full border-2 bg-red-200 transition-all ${selectedCategory === "critical" ? "border-primary shadow-lg" : "border-transparent"}`}
                       >
                         <Image
                           src="/resources/cry.png"
-                          alt="Sad cat"
+                          alt="Critical"
                           width={80}
                           height={80}
                           className="h-full w-full object-cover p-2"
@@ -191,15 +270,50 @@ export default function UploadModal({
                       </div>
                     </Label>
                   </div>
-                  <span className="mt-1 text-xs font-medium">Needs Help</span>
+                  <span className="mt-1 text-xs font-medium">Critical</span>
                 </div>
               </RadioGroup>
             </div>
 
+            {!isAuthenticated && (
+              <div className="space-y-4">
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-cat-orange/20">
+                  <div className="space-y-2">
+                    <Label htmlFor="anonymousNickname" className="text-cat-brown font-medium">
+                      Anonymous Nickname *
+                    </Label>
+                    <Input
+                      id="anonymousNickname"
+                      type="text"
+                      value={anonymousNickname}
+                      onChange={(e) => setAnonymousNickname(e.target.value)}
+                      placeholder="Enter your nickname"
+                      className="border-cat-orange/30 focus:border-cat-orange"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="anonymousPassword" className="text-cat-brown font-medium">
+                      Password *
+                    </Label>
+                    <Input
+                      id="anonymousPassword"
+                      type="password"
+                      value={anonymousPassword}
+                      onChange={(e) => setAnonymousPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="border-cat-orange/30 focus:border-cat-orange"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <Button
               type="submit"
               className="w-full bg-primary text-white hover:bg-primary/90 hover:scale-105 transition-all rounded-xl py-6 text-lg font-medium"
-              disabled={!selectedFile || !selectedCategory || isUploading}
+                             disabled={!selectedFile || isUploading || (!isAuthenticated && (!anonymousNickname || !anonymousPassword))}
             >
               {isUploading ? (
                 <div className="flex items-center justify-center">
