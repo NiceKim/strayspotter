@@ -15,7 +15,7 @@ services:
 
   # Node.js backend service
   app:
-    image: ghcr.io/NiceKim/strayspotter-app:latest
+    image: ghcr.io/nicekim/strayspotter-app:latest
     ports:
       - "3000"
     env_file:
@@ -28,7 +28,7 @@ services:
 
   # Next.js frontend service
   frontend:
-    image: ghcr.io/NiceKim/strayspotter-frontend:latest
+    image: ghcr.io/nicekim/strayspotter-frontend:latest
     ports:
       - "3001"
     environment:
