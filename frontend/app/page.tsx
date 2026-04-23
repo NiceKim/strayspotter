@@ -76,29 +76,31 @@ export default function Home() {
       {/* Hero Section */}
       <header
         id="home"
-        className="flex min-h-screen items-center justify-center px-4 py-16 md:px-8 bg-gradient-to-b from-cat-beige via-cat-beige/90 to-white"
+        className="flex min-h-screen items-center justify-center bg-gradient-to-b from-cat-beige via-cat-beige/90 to-white py-16 sm:py-20 md:py-16"
       >
-        <div className="container flex flex-col items-center justify-between gap-8 md:flex-row">
-          <div className="max-w-2xl space-y-8 text-center md:text-left">
-            <h1 className="hero-title text-4xl md:text-6xl lg:text-7xl bg-gradient-to-r from-cat-brown to-cat-orange bg-clip-text text-transparent pb-2">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-10 px-5 sm:px-8 md:flex-row md:gap-12 lg:px-10">
+          <div className="w-full max-w-2xl space-y-6 text-center sm:space-y-8 md:text-left">
+            <h1 className="hero-title bg-gradient-to-r from-cat-brown to-cat-orange bg-clip-text pb-2 text-4xl text-transparent md:text-6xl lg:text-7xl">
               Share your love for neighborhood cats!
             </h1>
-            
-            <p className="rounded-3xl bg-cat-brown/40 p-8 text-lg text-white shadow-lg md:text-xl backdrop-blur-sm">
-              Spot, share, and support stray cats together. <br/>
-              Join a community using photo-sharing to understand and care for neighborhood strays.
-            </p>
 
-            <div className="flex justify-center md:justify-start space-x-4">
+            <div className="rounded-3xl bg-cat-brown/40 p-5 shadow-lg backdrop-blur-sm sm:p-7 md:p-8">
+              <p className="text-base leading-relaxed text-white sm:text-lg md:text-xl">
+                Spot, share, and support stray cats together. <br />
+                Join a community using photo-sharing to understand and care for neighborhood strays.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:justify-center md:justify-start md:gap-4">
               <Button
                 onClick={openUploadModal}
-                className="h-12 rounded-xl bg-primary px-8 text-xl font-bold text-white hover:bg-primary/90 hover:scale-105 transition-all"
+                className="h-12 w-full rounded-xl bg-primary px-8 text-xl font-bold text-white transition-all hover:scale-105 hover:bg-primary/90 sm:w-auto"
               >
                 Share Pictures
               </Button>
               <Button
                 variant="outline"
-                className="h-12 rounded-xl px-8 text-xl font-bold border-cat-brown text-cat-brown hover:text-[#5C4033] hover:bg-cat-brown/20 hover:scale-105 transition-all"
+                className="h-12 w-full rounded-xl border-cat-brown px-8 text-xl font-bold text-cat-brown transition-all hover:scale-105 hover:bg-cat-brown/20 hover:text-[#5C4033] sm:w-auto"
                 onClick={() => (window.location.href = "/gallery")}
               >
                 View Gallery
@@ -203,15 +205,15 @@ export default function Home() {
 
 
       {/* Map Section */}
-      <section ref={mapRef} id="map" className="py-20 md:py-28 min-h-[800px] bg-cat-beige px-10">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+      <section ref={mapRef} id="map" className="bg-cat-beige px-4 py-16 sm:px-6 md:px-8 md:py-24 lg:py-28">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 text-center md:mb-12">
             <h2 className="section-title mb-4 text-4xl text-cat-brown md:text-5xl lg:text-6xl">Stray Cat Map</h2>
-            <p className="text-lg text-gray-600 md:text-xl max-w-3xl mx-auto">
+            <p className="mx-auto max-w-3xl text-lg text-gray-600 md:text-xl">
               Explore the locations of spotted stray cats in your neighborhood. Each marker represents a cat sighting, helping us understand their distribution and needs.
             </p>
           </div>
-          <div className="rounded-lg overflow-hidden shadow-lg relative" style={{ zIndex: 0 }}>
+          <div className="relative z-0 isolate overflow-hidden rounded-lg shadow-lg">
             <CatMap />
           </div>
         </div>

@@ -4,7 +4,7 @@ const rateLimit = require('express-rate-limit');
 // Assumes `app.set('trust proxy', 1)` is enabled in `backend/src/server.js`
 // so `req.ip` represents the real client IP.
 
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 function makeLimiter({ max, message }) {
   return rateLimit({

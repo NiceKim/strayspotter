@@ -15,9 +15,7 @@ services:
 
   # Node.js backend service
   app:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/NiceKim/strayspotter-app:latest
     ports:
       - "3000"
     env_file:
@@ -30,9 +28,7 @@ services:
 
   # Next.js frontend service
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/NiceKim/strayspotter-frontend:latest
     ports:
       - "3001"
     environment:

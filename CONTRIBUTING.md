@@ -30,6 +30,7 @@ We follow the **Git Flow** model:
 - `feature/<feature-name>`: Feature development branch  
 - `hotfix/<issue-name>`: Urgent fixes  
 - `refactor/<topic>`: Large-scale refactoring (e.g. structure change, logic reorganization)
+- `chore/<topic>`: Maintenance tasks (e.g. config, dependencies, minor fixes)
 
 **Example:**
 git checkout -b feature/user-auth
