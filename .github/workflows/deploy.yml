@@ -31,8 +31,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner_lowercase }}/strayspotter-app:latest
-            ghcr.io/${{ github.repository_owner_lowercase }}/strayspotter-app:${{ github.sha }}
+            ghcr.io/nicekim/strayspotter-app:latest
+            ghcr.io/nicekim/strayspotter-app:${{ github.sha }}
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
@@ -40,8 +40,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner_lowercase }}/strayspotter-frontend:latest
-            ghcr.io/${{ github.repository_owner_lowercase }}/strayspotter-frontend:${{ github.sha }}
+            ghcr.io/nicekim/strayspotter-frontend:latest
+            ghcr.io/nicekim/strayspotter-frontend:${{ github.sha }}
 
   deploy-ec2:
     runs-on: ubuntu-latest
