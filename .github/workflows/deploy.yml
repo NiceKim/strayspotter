@@ -63,16 +63,14 @@ jobs:
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
 
-          OIDC_TOKEN=$(python3 - <<'PY'
-import json, os
-resp = json.loads(os.environ["OIDC_RESPONSE"])
-print(resp["value"])
-PY
-)
+          OIDC_TOKEN=$(echo "$OIDC_RESPONSE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
 
-          python3 - <<'PY'
-import base64, json, os
-token = os.environ["OIDC_TOKEN"]
+          python3 - "$OIDC_TOKEN" <<'PY'
+import base64
+import json
+import sys
+
+token = sys.argv[1]
 payload_b64 = token.split(".")[1]
 payload_b64 += "=" * (-len(payload_b64) % 4)
 payload = json.loads(base64.urlsafe_b64decode(payload_b64).decode())
