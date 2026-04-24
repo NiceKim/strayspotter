@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   build-and-push:
+    if: false # temporary: skip image build/push during workflow debugging
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,7 +46,6 @@ jobs:
 
   deploy-ec2:
     runs-on: ubuntu-latest
-    needs: build-and-push
     environment: Production
     permissions:
       id-token: write
@@ -66,7 +66,10 @@ jobs:
             --parameters commands='[
               "set -e",
               "if [ -d /home/ec2-user/strayspotter ]; then cd /home/ec2-user/strayspotter; elif [ -d /home/ubuntu/strayspotter ]; then cd /home/ubuntu/strayspotter; else echo \"strayspotter path not found\"; exit 1; fi",
-              "npm run deploy"
+              "if docker compose version >/dev/null 2>&1; then COMPOSE_CMD=\"docker compose\"; elif command -v docker-compose >/dev/null 2>&1; then COMPOSE_CMD=\"docker-compose\"; else echo \"docker compose and docker-compose are both unavailable\"; exit 1; fi",
+              "$COMPOSE_CMD pull",
+              "$COMPOSE_CMD up -d",
+              "docker image prune -f"
             ]' \
             --query "Command.CommandId" \
             --output text)
