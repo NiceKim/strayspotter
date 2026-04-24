@@ -51,6 +51,36 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: Debug GitHub/OIDC context
+        run: |
+          set -e
+          echo "event=${GITHUB_EVENT_NAME}"
+          echo "ref=${GITHUB_REF}"
+          echo "repository=${GITHUB_REPOSITORY}"
+          echo "actor=${GITHUB_ACTOR}"
+
+          OIDC_RESPONSE=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+
+          OIDC_TOKEN=$(python3 - <<'PY'
+import json, os
+resp = json.loads(os.environ["OIDC_RESPONSE"])
+print(resp["value"])
+PY
+)
+
+          python3 - <<'PY'
+import base64, json, os
+token = os.environ["OIDC_TOKEN"]
+payload_b64 = token.split(".")[1]
+payload_b64 += "=" * (-len(payload_b64) % 4)
+payload = json.loads(base64.urlsafe_b64decode(payload_b64).decode())
+print("oidc.iss=", payload.get("iss"))
+print("oidc.aud=", payload.get("aud"))
+print("oidc.sub=", payload.get("sub"))
+PY
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
