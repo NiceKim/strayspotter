@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ "main", "hotfix/github-actions" ]
+    branches: [ "main" ]
 
 permissions:
   contents: read
@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   build-and-push:
-    if: false # temporary: skip image build/push during workflow debugging
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,6 +45,7 @@ jobs:
 
   deploy-ec2:
     runs-on: ubuntu-latest
+    needs: build-and-push
     environment: Production
     permissions:
       id-token: write
