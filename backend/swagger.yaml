@@ -500,8 +500,10 @@ paths:
 
   /api/posts/{id}/likes:
     get:
-      summary: Retrieves like count for a post
-      description: Returns the total number of likes for the specified post ID.
+      summary: Retrieves like count and current user's like state
+      description: |
+        Returns total likes and `likedByMe` when a valid `Authorization: Bearer` token is sent;
+        otherwise `likedByMe` is false.
       parameters:
         - in: path
           name: id
@@ -509,14 +511,27 @@ paths:
           schema:
             type: string
           description: ID of the post.
+        - in: header
+          name: Authorization
+          required: false
+          schema:
+            type: string
+          description: Optional Bearer access token to compute `likedByMe`.
       responses:
         '200':
-          description: Successfully retrieved like count.
+          description: Successfully retrieved like summary.
           content:
             application/json:
               schema:
-                type: integer
-                example: 12
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 12
+                  likedByMe:
+                    type: boolean
+                    description: True when the authenticated user has liked this post.
+                    example: true
         '400':
           description: Missing post ID.
 

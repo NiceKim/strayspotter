@@ -65,6 +65,13 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
         "4xl": "2rem",
       },
+      // Stacking: Leaflet uses ~400–800; keep order nav < modal < popover < toast
+      zIndex: {
+        nav: "900",
+        modal: "1000",
+        popover: "1100",
+        toast: "1200",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

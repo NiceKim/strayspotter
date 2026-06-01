@@ -190,14 +190,16 @@ async function deletePost(req, res, next) {
 }
 
 /**
- * Returns the number of likes for a post.
+ * Returns like count and, when Authorization is present, whether the current user liked the post.
  *
  * Request:
+ * - Headers:
+ *   - Authorization: Bearer token (optional; if valid, `likedByMe` is included)
  * - Params:
  *   - id: Post ID
  *
  * Response:
- * - 200 OK: like count as a number
+ * - 200 OK: `{ count: number, likedByMe: boolean }`
  * - 400 Bad Request: Missing post ID
  *
  * @returns {Promise<void>}
@@ -209,8 +211,12 @@ async function getLikes(req, res, next) {
     if (!postId) {
       throw new ValidationError('Post ID is required');
     }
-    const likes = await db.fetchLikesByPostId(pool, postId);
-    res.status(200).json(likes);
+    const count = await db.fetchLikesByPostId(pool, postId);
+    let likedByMe = false;
+    if (req.userId) {
+      likedByMe = await db.hasUserLikedPost(pool, postId, req.userId);
+    }
+    res.status(200).json({ count, likedByMe });
   } catch (err) {
     next(err);
   }
