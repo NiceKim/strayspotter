@@ -45,10 +45,13 @@ export default function CatMap() {
   const { refreshTrigger } = useDataRefresh()
 
   useEffect(() => {
+    let cancelled = false
+
     const initializeMap = async () => {
       try {
         // Dynamically import Leaflet
         const L = await import("leaflet")
+        if (cancelled) return
         // Initialize the map
         const map = L.map(mapRef.current!).setView(getInitialCenter(), getInitialZoomLevel())
         mapInstanceRef.current = map
@@ -71,11 +74,13 @@ export default function CatMap() {
         map.setMinZoom(MIN_ZOOM_LEVEL)
 
         // Load images
-        await loadImages(map, L)
-        setIsLoading(false)
+        await loadImages(map, L, () => cancelled)
+        if (!cancelled) setIsLoading(false)
       } catch (error) {
-        console.error("Failed to initialize map:", error)
-        setIsLoading(false)
+        if (!cancelled) {
+          console.error("Failed to initialize map:", error)
+          setIsLoading(false)
+        }
       }
     }
 
@@ -89,6 +94,7 @@ export default function CatMap() {
 
     // Cleanup function
     return () => {
+      cancelled = true
       cancelAnimationFrame(raf)
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove()
@@ -97,15 +103,17 @@ export default function CatMap() {
     }
   }, [refreshTrigger])
 
-  const loadImages = async (map: any, L: any) => {
+  const loadImages = async (map: any, L: any, isCancelled: () => boolean) => {
     const posts = await fetchGalleryImages(10)
-    if (!posts.length) {
+    if (!posts.length || isCancelled()) {
       return
     }
     for (const post of posts) {
+      if (isCancelled()) break
       try {
         const data = await fetchImageUrl(post.picture_key)
         const gpsData = await fetchGPSByID(post.picture_id)
+        if (isCancelled()) break
         const latitude = gpsData.latitude
         const longitude = gpsData.longitude
         if (!latitude || !longitude) { continue }
