@@ -44,7 +44,7 @@ async function register (req, res, next) {
             throw new ValidationError('All fields are required');
         }
 
-        const userByEmail = await db.fetchUserByEmail(pool, email);
+        //const userByEmail = await db.fetchUserByEmail(pool, email);
         const userByAccountId = await db.fetchUserByAccountId(pool, accountId);
         if (userByEmail || userByAccountId) {
             throw new ValidationError('Email or account ID already exists');
