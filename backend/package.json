@@ -3,7 +3,9 @@
     "dev": "dotenv -e ../.env node src/server.js",
     "dev-test": "dotenv -e ../.env cross-env DB_NAME=strayspotter_database_test node src/server.js",
     "start": "dotenv -e ../.env node src/server.js",
-    "test": "dotenv -e ../.env cross-env DB_NAME=strayspotter_database_test jest"
+    "test": "dotenv -e ../.env cross-env DB_NAME=strayspotter_database_test jest",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:integration": "DB_HOST=127.0.0.1 DB_PORT=3307 DB_NAME=strayspotter_database_test DB_USER=root DB_PASSWORD=root JWT_SECRET=test-secret NODE_ENV=test jest --config jest.integration.config.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.709.0",
@@ -23,10 +25,18 @@
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"
   },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/unit/**/*.test.js",
+      "**/tests/integration/**/*.test.js"
+    ]
+  },
   "devDependencies": {
     "cross-env": "^7.0.3",
     "dotenv-cli": "^8.0.0",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "supertest": "^7.2.2"
   }
 }
